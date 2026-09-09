@@ -42,6 +42,34 @@ body {
   color: var(--foreground);
 }
 
+.bg-mesh {
+  background-image:
+    radial-gradient(ellipse 70% 55% at 12% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
+    radial-gradient(ellipse 60% 50% at 100% 15%, color-mix(in srgb, var(--accent) 8%, transparent), transparent);
+  background-repeat: no-repeat;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+* {
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -72,4 +100,53 @@ body {
 
 .animate-pulse-dot {
   animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, white 25%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes waveform {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-waveform > span {
+  animation: waveform 1s ease-in-out infinite;
+  transform-origin: bottom;
 }

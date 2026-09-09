@@ -44,3 +44,11 @@ export function WandIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.2} stroke="currentColor" {...props}>
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

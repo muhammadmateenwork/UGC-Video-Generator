@@ -19,18 +19,28 @@ const STEPS = [
  * the four layers a render actually assembles: background, caption, GIF, audio. */
 function LayerStackPreview() {
   return (
-    <div className="relative mx-auto aspect-[9/16] w-full max-w-[190px] overflow-hidden rounded-[1.75rem] border-[3px] border-ink bg-gradient-to-b from-orange-300 via-orange-400 to-ink shadow-lg">
-      <div className="absolute inset-x-3 top-6 rounded-lg bg-black/45 px-2 py-1.5 text-center text-[11px] font-semibold text-white backdrop-blur-sm">
-        this changes everything
+    <div className="animate-float mx-auto w-full max-w-[190px]">
+      <div className="relative aspect-[9/16] overflow-hidden rounded-[1.75rem] border-[3px] border-ink bg-gradient-to-b from-orange-300 via-orange-400 to-ink shadow-xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+          <div className="mt-1.5 h-3.5 w-16 rounded-full bg-ink/90" />
+        </div>
+        <div className="absolute inset-x-3 top-7 rounded-lg bg-black/45 px-2 py-1.5 text-center text-[11px] font-semibold text-white backdrop-blur-sm">
+          this changes everything
+        </div>
+        <div className="absolute right-3 bottom-10 flex h-14 w-14 items-center justify-center rounded-xl bg-white/90 shadow-md ring-2 ring-white/60">
+          <SparkIcon className="h-6 w-6 text-accent" />
+        </div>
+        <div className="animate-waveform absolute inset-x-3 bottom-3 flex items-end gap-[3px]">
+          {[6, 12, 8, 16, 10, 14, 7, 11].map((h, i) => (
+            <span
+              key={i}
+              className="w-1.5 rounded-full bg-white/70"
+              style={{ height: `${h}px`, animationDelay: `${i * 90}ms` }}
+            />
+          ))}
+        </div>
       </div>
-      <div className="absolute inset-x-0 bottom-10 flex justify-center">
-        <div className="h-16 w-16 rounded-full bg-white/90 shadow-md" />
-      </div>
-      <div className="absolute inset-x-3 bottom-3 flex items-end gap-[3px]">
-        {[6, 12, 8, 16, 10, 14, 7, 11].map((h, i) => (
-          <div key={i} className="w-1.5 rounded-full bg-white/70" style={{ height: `${h}px` }} />
-        ))}
-      </div>
+      <p className="mt-3 text-center text-xs text-ink-soft/70">illustrative — not real output</p>
     </div>
   );
 }
@@ -43,7 +53,7 @@ export function LandingHero({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-10 px-4 py-10 sm:px-6">
       <div className="grid w-full items-center gap-10 md:grid-cols-[1.15fr_0.85fr] md:gap-12">
-        <div className="flex flex-col items-start gap-5 text-left">
+        <div className="animate-fade-up flex flex-col items-start gap-5 text-left">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-ink-soft">
             <SparkIcon className="h-3.5 w-3.5 text-accent" />
             Not AI-generated. AI-organized.
@@ -63,22 +73,26 @@ export function LandingHero({
               <button
                 key={s}
                 onClick={() => onSuggestion(s)}
-                className="rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:border-accent/50 hover:text-ink"
+                className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft shadow-sm transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-ink hover:shadow-md"
               >
+                <LinkIcon className="h-3.5 w-3.5 shrink-0 text-ink-soft/60 transition group-hover:text-accent" />
                 {s}
               </button>
             ))}
           </div>
         </div>
 
-        <LayerStackPreview />
+        <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
+          <LayerStackPreview />
+        </div>
       </div>
 
       <ol className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, i) => (
           <li
             key={step.text}
-            className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4"
+            className="animate-fade-up flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+            style={{ animationDelay: `${150 + i * 60}ms` }}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
               <step.icon className="h-4 w-4" />

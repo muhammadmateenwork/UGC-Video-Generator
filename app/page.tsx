@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { LandingHero } from "@/components/LandingHero";
 import { ChatMessageBubble } from "@/components/ChatMessageBubble";
 import { ChatInput } from "@/components/ChatInput";
-import { SparkIcon } from "@/components/icons";
+import { SparkIcon, PlusIcon } from "@/components/icons";
 import type { ChatMessage, ChatStreamEvent } from "@/lib/types";
 
 function makeId(): string {
@@ -74,7 +74,6 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setPendingId(assistantId);
 
-    let statusText = "";
     let sawToken = false;
 
     const applyPatch = (patch: Partial<ChatMessage>) => {
@@ -87,13 +86,12 @@ export default function Home() {
       await streamChat(text, (event) => {
         switch (event.type) {
           case "status":
-            statusText = event.text;
-            if (!sawToken) applyPatch({ content: statusText });
+            if (!sawToken) applyPatch({ status: event.text });
             break;
           case "token":
             if (!sawToken) {
               sawToken = true;
-              applyPatch({ content: event.text });
+              applyPatch({ content: event.text, status: undefined });
             } else {
               setMessages((prev) =>
                 prev.map((m) =>
@@ -106,7 +104,7 @@ export default function Home() {
             applyPatch({ videoUrl: event.url });
             break;
           case "error":
-            applyPatch({ content: `Something went wrong: ${event.text}` });
+            applyPatch({ content: `Something went wrong: ${event.text}`, status: undefined });
             break;
           case "done":
             applyPatch({ pending: false });
@@ -114,7 +112,11 @@ export default function Home() {
         }
       });
     } catch {
-      applyPatch({ content: "Something went wrong reaching the server.", pending: false });
+      applyPatch({
+        content: "Something went wrong reaching the server.",
+        status: undefined,
+        pending: false,
+      });
     } finally {
       setPendingId(null);
     }
@@ -123,12 +125,24 @@ export default function Home() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="bg-mesh flex h-screen flex-col bg-background">
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-accent">
           <SparkIcon className="h-4 w-4" />
         </div>
         <span className="text-sm font-semibold tracking-tight text-ink">UGC Video Generator</span>
+        {hasMessages && (
+          <button
+            onClick={() => {
+              setMessages([]);
+              setInputValue("");
+            }}
+            className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent/40 hover:text-ink"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            New chat
+          </button>
+        )}
       </header>
 
       {hasMessages ? (

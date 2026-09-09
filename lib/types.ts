@@ -7,6 +7,8 @@ export interface ChatMessage {
   videoUrl?: string;
   /** Set while the assistant is still working on this message (status text, streaming tokens). */
   pending?: boolean;
+  /** Progress label shown before any reply text has streamed in (e.g. "Rendering your video..."). */
+  status?: string;
 }
 
 /** Server-sent event payloads for POST /api/chat. */
