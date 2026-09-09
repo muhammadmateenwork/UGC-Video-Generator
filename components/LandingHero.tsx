@@ -65,14 +65,16 @@ export function LandingHero({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-12 px-4 py-12 sm:px-6">
       <div className="grid w-full items-center gap-10 md:grid-cols-[1.15fr_0.85fr] md:gap-12">
-        <div className="animate-fade-up flex flex-col items-start gap-5 text-left">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent-soft/50 px-3 py-1 text-xs font-medium text-ink-soft shadow-sm">
-            <SparkIcon className="h-3.5 w-3.5 text-accent" />
-            Not AI-generated. AI-organized.
-          </span>
-          <h1 className="text-4xl leading-[1.08] font-semibold tracking-tight text-ink sm:text-5xl xl:text-6xl">
+        <div className="animate-fade-up flex flex-col items-start gap-6 text-left">
+          <div className="flex items-center gap-2.5">
+            <span className="h-4 w-1 rounded-full bg-accent" aria-hidden />
+            <span className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+              Not AI-generated, AI-organized
+            </span>
+          </div>
+          <h1 className="font-serif text-5xl leading-[1.05] font-medium text-ink sm:text-6xl xl:text-7xl">
             Turn any product page into a{" "}
-            <span className="bg-gradient-to-r from-accent to-orange-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-accent to-orange-600 bg-clip-text text-transparent italic">
               UGC-style ad
             </span>
           </h1>
@@ -98,7 +100,7 @@ export function LandingHero({
                 <button
                   key={s}
                   onClick={() => onSuggestion(s)}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft shadow-sm transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-ink hover:shadow-md"
+                  className="shadow-warm group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-ink hover:shadow-warm-lg"
                 >
                   <LinkIcon className="h-3.5 w-3.5 shrink-0 text-ink-soft/60 transition group-hover:text-accent" />
                   {s}
@@ -119,7 +121,7 @@ export function LandingHero({
         {STEPS.map((step, i) => (
           <li
             key={step.text}
-            className="animate-fade-up flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+            className="shadow-warm animate-fade-up flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:shadow-warm-lg"
             style={{ animationDelay: `${150 + i * 60}ms` }}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">

@@ -127,11 +127,14 @@ export default function Home() {
   return (
     <div className="relative flex h-screen flex-col bg-background">
       <div className="bg-mesh pointer-events-none absolute inset-0 -z-10" />
+      <div className="bg-grain pointer-events-none absolute inset-0 -z-10" />
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-accent">
           <SparkIcon className="h-4 w-4" />
         </div>
-        <span className="text-sm font-semibold tracking-tight text-ink">UGC Video Generator</span>
+        <span className="font-serif text-base font-medium text-ink">
+          UGC <span className="text-accent italic">Video</span> Generator
+        </span>
         {hasMessages && (
           <button
             onClick={() => {
