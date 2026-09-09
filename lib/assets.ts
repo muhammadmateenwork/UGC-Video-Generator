@@ -116,8 +116,11 @@ export async function sourceBackground(query: string): Promise<SourcedBackground
 
 interface GiphyImage {
   url: string;
+  width?: string;
+  height?: string;
 }
 interface GiphyGif {
+  user?: { is_verified?: boolean } | null;
   images: {
     downsized?: GiphyImage;
     original?: GiphyImage;
@@ -128,8 +131,22 @@ interface GiphySearch {
   data: GiphyGif[];
 }
 
-/** Giphy GIF search. Uses "downsized" for a smaller/faster-to-process file
- * when available, falling back to the original render. */
+const MIN_GIF_WIDTH = 150;
+
+function giphyPreviewImage(gif: GiphyGif): GiphyImage | null {
+  return gif.images.downsized || gif.images.fixed_height || gif.images.original || null;
+}
+
+/** Giphy GIF search, with two quality passes over the candidate pool rather
+ * than blindly taking the first hit — confirmed by actually downloading and
+ * inspecting frames, not assumed:
+ * 1. Official network/brand-channel uploads (a late-night show's own Peacock
+ *    account, a network's own clip, etc.) are meaningfully more likely to
+ *    carry a burned-in channel bug/watermark than an unattributed community
+ *    upload of the same reaction. Prefer `user` being absent/unverified.
+ * 2. Very small source GIFs look visibly pixelated once scaled up to the
+ *    overlay width in the final composite. Prefer ones above a minimum
+ *    native width when size data is available. */
 export async function sourceGif(query: string): Promise<Buffer | null> {
   const apiKey = process.env.GIPHY_API_KEY;
   if (!apiKey) return null;
@@ -137,14 +154,24 @@ export async function sourceGif(query: string): Promise<Buffer | null> {
   const params = new URLSearchParams({
     api_key: apiKey,
     q: query,
-    limit: "8",
+    limit: "10",
     rating: "pg-13",
   });
   const data = await fetchJson<GiphySearch>(`https://api.giphy.com/v1/gifs/search?${params}`);
-  const gif = data?.data?.[0];
-  if (!gif) return null;
+  const candidates = data?.data ?? [];
+  if (candidates.length === 0) return null;
 
-  const url = gif.images.downsized?.url || gif.images.fixed_height?.url || gif.images.original?.url;
+  const unbranded = candidates.filter((g) => !g.user?.is_verified);
+  const brandFiltered = unbranded.length > 0 ? unbranded : candidates;
+
+  const wellSized = brandFiltered.filter((g) => {
+    const img = giphyPreviewImage(g);
+    const width = img?.width ? parseInt(img.width, 10) : null;
+    return width === null || width >= MIN_GIF_WIDTH;
+  });
+  const finalPool = wellSized.length > 0 ? wellSized : brandFiltered;
+
+  const url = giphyPreviewImage(finalPool[0])?.url;
   if (!url) return null;
   return fetchBuffer(url);
 }
