@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
+import { renderCaptionImage } from "./captionImage";
 
 const run = promisify(execFile);
 
@@ -31,32 +32,6 @@ export interface UgcClipInput {
   durationSeconds?: number;
 }
 
-function escapeDrawtext(text: string): string {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "’")
-    .replace(/%/g, "\\%");
-}
-
-/** Wraps caption text onto at most 2 lines so it never overflows the frame width. */
-function wrapCaption(text: string, maxCharsPerLine = 20): string {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > maxCharsPerLine && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = candidate;
-    }
-  }
-  if (current) lines.push(current);
-  return lines.slice(0, 2).join("\n");
-}
-
 /**
  * Assembles the four-layer UGC clip — background, trendy caption, trending
  * audio, and a GIF overlay — as one ffmpeg filter_complex pass.
@@ -69,6 +44,12 @@ function wrapCaption(text: string, maxCharsPerLine = 20): string {
  * rejected it. Building the graph as a list of fully self-contained
  * statements (never string-splicing partial filter chains together) makes
  * that class of bug structurally impossible instead of just fixed once.
+ *
+ * The caption is composited as a pre-rendered PNG via `overlay`, not
+ * ffmpeg's `drawtext` filter — confirmed directly from a failed production
+ * render, ffmpeg-static's Linux binary doesn't have drawtext compiled in
+ * ("No such filter: 'drawtext'"), while `overlay` has no such dependency
+ * and works on any ffmpeg build.
  */
 export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
   if (!ffmpegPath) throw new Error("ffmpeg-static binary not found");
@@ -78,8 +59,9 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
   const jobDir = await fs.mkdtemp(path.join(os.tmpdir(), "ugc-"));
   try {
     const args: string[] = ["-y"];
+    let nextInputIndex = 0;
 
-    // --- Input 0: background ---
+    // --- Input: background (always index 0) ---
     if (input.background) {
       const bgExt = input.background.type === "video" ? "bg.mp4" : "bg.jpg";
       const bgPath = path.join(jobDir, bgExt);
@@ -97,18 +79,29 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
         `color=c=${FALLBACK_BG_COLOR}:s=${WIDTH}x${HEIGHT}:r=${FPS}`
       );
     }
+    nextInputIndex++;
 
-    // --- Input 1 (optional): GIF overlay ---
+    // --- Input (optional): pre-rendered caption PNG ---
+    let captionInputIndex: number | null = null;
+    if (caption) {
+      const captionBuffer = await renderCaptionImage(caption);
+      const captionPath = path.join(jobDir, "caption.png");
+      await fs.writeFile(captionPath, captionBuffer);
+      captionInputIndex = nextInputIndex++;
+      args.push("-loop", "1", "-i", captionPath);
+    }
+
+    // --- Input (optional): GIF overlay ---
     let gifInputIndex: number | null = null;
     if (input.gifBuffer) {
       const gifPath = path.join(jobDir, "overlay.gif");
       await fs.writeFile(gifPath, input.gifBuffer);
-      gifInputIndex = 1;
+      gifInputIndex = nextInputIndex++;
       args.push("-stream_loop", "-1", "-i", gifPath);
     }
 
     // --- Next input: trending audio, or a silent track so output audio is consistent ---
-    const audioInputIndex = gifInputIndex !== null ? 2 : 1;
+    const audioInputIndex = nextInputIndex++;
     if (input.audioBuffer) {
       const audioPath = path.join(jobDir, "audio.mp3");
       await fs.writeFile(audioPath, input.audioBuffer);
@@ -124,12 +117,9 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
     );
     let pad = "bg";
 
-    if (caption) {
-      const text = escapeDrawtext(wrapCaption(caption));
+    if (captionInputIndex !== null) {
       filters.push(
-        `[${pad}]drawtext=text='${text}':fontcolor=white:fontsize=48:line_spacing=8:` +
-          `box=1:boxcolor=black@0.45:boxborderw=18:` +
-          `x=(w-text_w)/2:y=110[cap]`
+        `[${pad}][${captionInputIndex}:v]overlay=x=0:y=90:format=auto[cap]`
       );
       pad = "cap";
     }
