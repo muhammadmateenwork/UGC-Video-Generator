@@ -21,10 +21,6 @@ export class GeminiUnavailableError extends Error {
   }
 }
 
-function isRetryableStatus(status: number | undefined): boolean {
-  return status === 429 || status === 500 || status === 503;
-}
-
 function extractStatus(err: unknown): number | undefined {
   if (err && typeof err === "object" && "status" in err) {
     const s = (err as { status?: unknown }).status;
@@ -37,41 +33,78 @@ function extractStatus(err: unknown): number | undefined {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Confirmed directly (a local call hung for a full 2 minutes with nothing
+// else changed) — the SDK call has no built-in timeout, so an unresponsive
+// or slow-to-answer endpoint just hangs forever instead of failing over to
+// the next key or the deterministic fallback plan.
+const PER_CALL_TIMEOUT_MS = 8000;
+// All keys from the same Google account share ONE quota pool (confirmed
+// separately, see lib assets notes) — trying more than a handful once one
+// is exhausted buys nothing but latency. Cap both how many keys get tried
+// and the total wall-clock time so a bad run degrades to the fallback plan
+// in seconds, not minutes.
+const MAX_KEYS_TO_TRY = 4;
+const OVERALL_BUDGET_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 /**
  * Runs `call` against each configured key in turn, retrying the same key
  * with backoff on transient 5xx/overload errors and moving to the next key
- * on quota exhaustion (429). Throws GeminiUnavailableError only once every
- * key has been exhausted.
+ * on quota exhaustion (429) or any error we can't confidently classify
+ * (network hiccup, timeout, odd SDK error shape) — only a clearly-fatal
+ * status (400, malformed request) is rethrown immediately, since retrying
+ * that across keys can't help. Bounded by both a per-call timeout and an
+ * overall budget so a bad run reaches GeminiUnavailableError — and the
+ * caller's deterministic fallback — in seconds rather than hanging.
  */
 async function withKeyRotationAndRetry<T>(
   call: (apiKey: string) => Promise<T>
 ): Promise<T> {
-  const keys = getApiKeys();
+  const keys = getApiKeys().slice(0, MAX_KEYS_TO_TRY);
   if (keys.length === 0) {
     throw new GeminiUnavailableError("No GEMINI_API_KEY configured");
   }
 
+  const deadline = Date.now() + OVERALL_BUDGET_MS;
   let lastError: unknown;
-  for (const key of keys) {
-    const maxAttempts = 3;
+
+  keyLoop: for (const key of keys) {
+    if (Date.now() >= deadline) break;
+    const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (Date.now() >= deadline) break keyLoop;
       try {
-        return await call(key);
+        return await withTimeout(call(key), PER_CALL_TIMEOUT_MS, "Gemini request");
       } catch (err) {
         lastError = err;
         const status = extractStatus(err);
-        if (status === 429) break; // this key's quota is exhausted, try the next key
-        if (isRetryableStatus(status) && attempt < maxAttempts) {
-          await sleep(400 * attempt);
+        if (status === 400) throw err; // malformed request — no key will fix that
+        if (status === 429) continue keyLoop; // this key's quota is exhausted, try the next key
+        if (attempt < maxAttempts) {
+          await sleep(300 * attempt);
           continue;
         }
-        if (!isRetryableStatus(status)) throw err; // non-retryable (bad request, etc.)
-        break; // exhausted retries on this key for a retryable error, try next key
+        // exhausted retries on this key (5xx, timeout, or unrecognized error) — try next key
       }
     }
   }
   throw new GeminiUnavailableError(
-    `All ${keys.length} Gemini key(s) failed. Last error: ${
+    `Gemini unavailable after trying ${keys.length} key(s). Last error: ${
       lastError instanceof Error ? lastError.message : String(lastError)
     }`
   );
