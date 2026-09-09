@@ -155,7 +155,9 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <LandingHero onSuggestion={handleSend} />
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <LandingHero onSuggestion={handleSend} />
+        </div>
       )}
 
       <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-6">
