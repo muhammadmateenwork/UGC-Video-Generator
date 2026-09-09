@@ -89,6 +89,14 @@ export function UnlockIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+export function PlayIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M7 4.5v15l14-7.5-14-7.5z" />
+    </svg>
+  );
+}
+
 export function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" {...props}>

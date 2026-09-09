@@ -1,24 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Karla, Unbounded } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const karla = Karla({
+  variable: "--font-karla",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Chunky, rounded display face for headlines and buttons — the "Neon Tape"
+// direction's loud, collage-and-sticker energy needs a display face with
+// real character, not a neutral system sans standing in for one.
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin"],
-});
-
-// Editorial display serif for headlines — pairs with Geist Sans for body
-// text so the site reads as an edited publication rather than a generic
-// SaaS template, matching the ink/orange design direction's own intent.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  axes: ["opsz", "SOFT", "WONK"],
+  weight: ["500", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -29,10 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}
-    >
+    <html lang="en" className={`${karla.variable} ${unbounded.variable} h-full`}>
       <body className="h-full antialiased">{children}</body>
     </html>
   );

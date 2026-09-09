@@ -1,6 +1,6 @@
 "use client";
 
-import { ClockIcon, LayersIcon, LinkIcon, SparkIcon, UnlockIcon, WandIcon } from "./icons";
+import { ClockIcon, LayersIcon, LinkIcon, PlayIcon, SparkIcon, UnlockIcon, WandIcon } from "./icons";
 
 const SUGGESTIONS = [
   "I'm building CalAI, a calorie-tracking app. Here's the site: calai.app",
@@ -21,38 +21,42 @@ const FEATURES = [
   { icon: UnlockIcon, text: "No sign-up to try it" },
 ];
 
-/** Purely illustrative — not a screen capture of real output — representing
- * the four layers a render actually assembles: background, caption, GIF, audio. */
-function LayerStackPreview() {
+/** Mirrors the "Neon Tape" mockup: a taped-down video card with a
+ * background, a GIF badge peeling off the corner, and a waveform for the
+ * audio layer — the four real layers a render assembles, not a decorative
+ * graphic. Kept compact so it's visible without scrolling on a laptop. */
+function VideoTapeCard() {
   return (
-    <div className="relative mx-auto w-full max-w-[190px]">
-      <div
-        className="absolute inset-0 -z-10 scale-90 rounded-full bg-accent/30 blur-3xl"
-        aria-hidden
-      />
-      <div className="animate-float">
-        <div className="relative aspect-[9/16] overflow-hidden rounded-[1.75rem] border-[3px] border-ink bg-gradient-to-b from-orange-300 via-orange-400 to-ink shadow-xl">
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
-            <div className="mt-1.5 h-3.5 w-16 rounded-full bg-ink/90" />
+    <div className="relative mx-auto w-full max-w-[170px]">
+      <div className="absolute inset-0 -z-10 scale-90 rounded-full bg-accent/25 blur-3xl" aria-hidden />
+      <div className="animate-float relative">
+        <div
+          className="tape-stripe absolute -top-2.5 left-1/2 h-6 w-[64px] -translate-x-1/2 -rotate-2 rounded-sm opacity-95 shadow-[0_4px_10px_-4px_rgba(0,0,0,0.5)]"
+          aria-hidden
+        />
+        <div className="absolute -top-3 -right-3.5 z-10 flex h-12 w-12 rotate-12 items-center justify-center rounded-full border-[3px] border-background bg-accent3 text-center text-[9px] font-bold text-background shadow-[0_8px_16px_-6px_rgba(0,0,0,0.6)]">
+          GIF
+        </div>
+        <div className="rounded-[1.1rem] border-2 border-accent bg-surface p-2.5 pb-7 shadow-warm-lg">
+          <div className="relative aspect-[9/16] overflow-hidden rounded-lg bg-gradient-to-br from-accent2 via-purple-600 to-accent">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <PlayIcon className="h-7 w-7 text-white/80" />
+            </div>
+            <div className="animate-waveform absolute inset-x-2 bottom-2 flex items-end gap-[3px]">
+              {[5, 10, 7, 13, 8, 11, 6, 9].map((h, i) => (
+                <span
+                  key={i}
+                  className="w-1.5 rounded-full bg-accent3"
+                  style={{ height: `${h}px`, animationDelay: `${i * 90}ms` }}
+                />
+              ))}
+            </div>
           </div>
-          <div className="absolute inset-x-3 top-7 rounded-lg bg-black/45 px-2 py-1.5 text-center text-[11px] font-semibold text-white backdrop-blur-sm">
-            this changes everything
-          </div>
-          <div className="absolute right-3 bottom-10 flex h-14 w-14 items-center justify-center rounded-xl bg-white/90 shadow-md ring-2 ring-white/60">
-            <SparkIcon className="h-6 w-6 text-accent" />
-          </div>
-          <div className="animate-waveform absolute inset-x-3 bottom-3 flex items-end gap-[3px]">
-            {[6, 12, 8, 16, 10, 14, 7, 11].map((h, i) => (
-              <span
-                key={i}
-                className="w-1.5 rounded-full bg-white/70"
-                style={{ height: `${h}px`, animationDelay: `${i * 90}ms` }}
-              />
-            ))}
-          </div>
+          <p className="absolute inset-x-2 bottom-2 text-center font-display text-[12px] font-bold text-foreground">
+            the drop ♪
+          </p>
         </div>
       </div>
-      <p className="mt-3 text-center text-xs text-ink-soft/70">illustrative — not real output</p>
     </div>
   );
 }
@@ -63,44 +67,46 @@ export function LandingHero({
   onSuggestion: (text: string) => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-12 px-4 py-12 sm:px-6">
-      <div className="grid w-full items-center gap-10 md:grid-cols-[1.15fr_0.85fr] md:gap-12">
-        <div className="animate-fade-up flex flex-col items-start gap-6 text-left">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-6 px-4 py-6 sm:px-6">
+      <div className="grid w-full items-center gap-8 md:grid-cols-[1.15fr_0.85fr] md:gap-10">
+        <div className="animate-fade-up flex flex-col items-start gap-4 text-left">
           <div className="flex items-center gap-2.5">
             <span className="h-4 w-1 rounded-full bg-accent" aria-hidden />
             <span className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
               Not AI-generated, AI-organized
             </span>
           </div>
-          <h1 className="font-serif text-5xl leading-[1.05] font-medium text-ink sm:text-6xl xl:text-7xl">
-            Turn any product page into a{" "}
-            <span className="bg-gradient-to-r from-accent to-orange-600 bg-clip-text text-transparent italic">
-              UGC-style ad
-            </span>
+          <h1 className="font-display text-4xl leading-[1.08] font-bold text-foreground sm:text-5xl xl:text-6xl">
+            Tape it in.
+            <br />
+            Watch it <span className="inline-block -rotate-3 text-accent3">blow up.</span>
           </h1>
           <p className="max-w-md text-base leading-relaxed text-ink-soft">
-            Drop a product URL in the chat. We read the page, then pick a
-            background, a GIF, trending audio, and a caption that actually
-            fit the product — and hand you back a ready vertical video.
+            Drop a product URL in the chat and we&apos;ll tape together a
+            background, a caption, a GIF, and trending audio into one loud
+            vertical video — ready to post, not just generated.
           </p>
 
           <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {FEATURES.map((f) => (
+            {FEATURES.map((f, i) => (
               <li key={f.text} className="flex items-center gap-1.5 text-xs font-medium text-ink-soft">
-                <f.icon className="h-3.5 w-3.5 text-accent" />
+                <f.icon
+                  className="h-3.5 w-3.5"
+                  style={{ color: [`var(--accent)`, `var(--accent2)`, `var(--accent3)`][i % 3] }}
+                />
                 {f.text}
               </li>
             ))}
           </ul>
 
-          <div className="mt-1 flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-ink-soft/70">Try an example:</span>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => onSuggestion(s)}
-                  className="shadow-warm group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-ink hover:shadow-warm-lg"
+                  className="shadow-warm group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:-translate-y-0.5 hover:border-accent hover:text-foreground hover:shadow-warm-lg"
                 >
                   <LinkIcon className="h-3.5 w-3.5 shrink-0 text-ink-soft/60 transition group-hover:text-accent" />
                   {s}
@@ -111,7 +117,7 @@ export function LandingHero({
         </div>
 
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
-          <LayerStackPreview />
+          <VideoTapeCard />
         </div>
       </div>
 
@@ -124,11 +130,17 @@ export function LandingHero({
             className="shadow-warm animate-fade-up flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:shadow-warm-lg"
             style={{ animationDelay: `${150 + i * 60}ms` }}
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: [`var(--accent-soft)`, `color-mix(in srgb, var(--accent2) 20%, transparent)`, `color-mix(in srgb, var(--accent3) 22%, transparent)`, `var(--accent-soft)`][i],
+                color: [`var(--accent)`, `var(--accent2)`, `var(--accent3)`, `var(--accent)`][i],
+              }}
+            >
               <step.icon className="h-4 w-4" />
             </div>
             <p className="text-sm leading-snug text-ink-soft">
-              <span className="mr-1 font-semibold text-ink">{i + 1}.</span>
+              <span className="mr-1 font-semibold text-foreground">{i + 1}.</span>
               {step.text}
             </p>
           </li>

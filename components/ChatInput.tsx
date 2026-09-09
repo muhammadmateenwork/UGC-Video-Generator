@@ -44,7 +44,7 @@ export function ChatInput({
         e.preventDefault();
         submit();
       }}
-      className="flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 shadow-sm transition-shadow focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/30"
+      className="flex items-end gap-2 rounded-full border-2 border-accent/60 bg-surface p-2 pl-5 shadow-sm transition-shadow focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30"
     >
       <textarea
         ref={textareaRef}
@@ -61,7 +61,7 @@ export function ChatInput({
       <button
         type="submit"
         disabled={disabled || !value.trim()}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-40"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-background transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-40"
         aria-label="Send message"
       >
         <ArrowUpIcon className="h-5 w-5" />
