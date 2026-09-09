@@ -1,5 +1,6 @@
 import type { ChatMessage } from "@/lib/types";
 import { PhoneVideo } from "./PhoneVideo";
+import { PipelineStepper } from "./PipelineStepper";
 import { SparkIcon } from "./icons";
 
 function TypingDots() {
@@ -16,28 +17,16 @@ function TypingDots() {
   );
 }
 
-function StatusRow({ text }: { text: string }) {
-  return (
-    <div className="flex items-center gap-2 py-0.5 text-ink-soft">
-      <span className="relative flex h-2 w-2 shrink-0">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-      </span>
-      <span className="text-[14px]">{text}</span>
-    </div>
-  );
-}
-
 function Avatar({ isUser }: { isUser: boolean }) {
   if (isUser) {
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-border text-[11px] font-semibold text-ink-soft">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-border to-ink-soft/30 text-[11px] font-semibold text-ink-soft shadow-sm">
         You
       </div>
     );
   }
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-accent">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ink to-ink/80 text-accent shadow-sm">
       <SparkIcon className="h-3.5 w-3.5" />
     </div>
   );
@@ -51,16 +40,16 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
     <div className={`flex w-full animate-fade-up items-start gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
       <Avatar isUser={isUser} />
       <div
-        className={`max-w-[82%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm sm:max-w-[72%] ${
+        className={`max-w-[82%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_10px_rgba(0,0,0,0.04)] sm:max-w-[72%] ${
           isUser
-            ? "rounded-tr-sm bg-ink text-background"
+            ? "rounded-tr-sm bg-gradient-to-br from-ink to-ink/95 text-background"
             : "rounded-tl-sm border border-border bg-surface text-foreground"
         }`}
       >
         {showTyping ? (
           <TypingDots />
         ) : !isUser && message.status && !message.content ? (
-          <StatusRow text={message.status} />
+          <PipelineStepper text={message.status} stage={message.stage} />
         ) : (
           message.content
         )}

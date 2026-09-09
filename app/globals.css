@@ -45,8 +45,18 @@ body {
 .bg-mesh {
   background-image:
     radial-gradient(ellipse 70% 55% at 12% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 100% 15%, color-mix(in srgb, var(--accent) 8%, transparent), transparent);
-  background-repeat: no-repeat;
+    radial-gradient(ellipse 60% 50% at 100% 15%, color-mix(in srgb, var(--accent) 8%, transparent), transparent),
+    radial-gradient(color-mix(in srgb, var(--ink) 10%, transparent) 1px, transparent 1px);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 22px 22px;
+  background-position: 0 0, 0 0, -11px -11px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
+}
+
+.fade-edges {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
 }
 
 ::selection {
@@ -114,26 +124,6 @@ body {
 
 .animate-float {
   animation: float 5s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.animate-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    color-mix(in srgb, white 25%, transparent) 50%,
-    transparent 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes waveform {

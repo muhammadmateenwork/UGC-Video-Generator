@@ -115,10 +115,10 @@ async function handleProductFlow(
   send: (e: ChatStreamEvent) => void,
   sendText: (text: string) => Promise<void>
 ) {
-  send({ type: "status", text: "Reading the page..." });
+  send({ type: "status", text: "Reading the page...", stage: "scrape" });
   const scraped = await scrapeProduct(url);
 
-  send({ type: "status", text: "Planning the creative..." });
+  send({ type: "status", text: "Planning the creative...", stage: "plan" });
   let plan: CreativePlan;
   try {
     plan = await planCreative({
@@ -136,7 +136,7 @@ async function handleProductFlow(
     }
   }
 
-  send({ type: "status", text: "Sourcing background, GIF, and audio..." });
+  send({ type: "status", text: "Sourcing background, GIF, and audio...", stage: "source" });
   const [backgroundResult, gifResult, audioResult] = await Promise.allSettled([
     sourceBackground(plan.backgroundQuery),
     sourceGif(plan.gifQuery),
@@ -147,7 +147,7 @@ async function handleProductFlow(
   const gifBuffer = gifResult.status === "fulfilled" ? gifResult.value : null;
   const audioBuffer = audioResult.status === "fulfilled" ? audioResult.value : null;
 
-  send({ type: "status", text: "Rendering your video..." });
+  send({ type: "status", text: "Rendering your video...", stage: "render" });
   const clip = await assembleUgcClip({
     background,
     gifBuffer,
@@ -155,7 +155,7 @@ async function handleProductFlow(
     caption: plan.caption,
   });
 
-  send({ type: "status", text: "Uploading..." });
+  send({ type: "status", text: "Uploading...", stage: "upload" });
   const videoUrl = await storeVideo(clip);
 
   await sendText(`Here's your UGC video for ${scraped.title || scraped.domain}:`);

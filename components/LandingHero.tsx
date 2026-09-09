@@ -54,13 +54,15 @@ export function LandingHero({
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-10 px-4 py-10 sm:px-6">
       <div className="grid w-full items-center gap-10 md:grid-cols-[1.15fr_0.85fr] md:gap-12">
         <div className="animate-fade-up flex flex-col items-start gap-5 text-left">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-ink-soft">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent-soft/50 px-3 py-1 text-xs font-medium text-ink-soft shadow-sm">
             <SparkIcon className="h-3.5 w-3.5 text-accent" />
             Not AI-generated. AI-organized.
           </span>
-          <h1 className="text-4xl leading-[1.08] font-semibold tracking-tight text-ink sm:text-5xl">
+          <h1 className="text-4xl leading-[1.08] font-semibold tracking-tight text-ink sm:text-5xl xl:text-6xl">
             Turn any product page into a{" "}
-            <span className="text-accent">UGC-style ad</span>
+            <span className="bg-gradient-to-r from-accent to-orange-600 bg-clip-text text-transparent">
+              UGC-style ad
+            </span>
           </h1>
           <p className="max-w-md text-base leading-relaxed text-ink-soft">
             Drop a product URL in the chat. We read the page, then pick a

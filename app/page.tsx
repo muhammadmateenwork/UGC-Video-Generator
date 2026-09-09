@@ -86,7 +86,7 @@ export default function Home() {
       await streamChat(text, (event) => {
         switch (event.type) {
           case "status":
-            if (!sawToken) applyPatch({ status: event.text });
+            if (!sawToken) applyPatch({ status: event.text, stage: event.stage });
             break;
           case "token":
             if (!sawToken) {
@@ -125,7 +125,8 @@ export default function Home() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="bg-mesh flex h-screen flex-col bg-background">
+    <div className="relative flex h-screen flex-col bg-background">
+      <div className="bg-mesh pointer-events-none absolute inset-0 -z-10" />
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-accent">
           <SparkIcon className="h-4 w-4" />
@@ -146,7 +147,7 @@ export default function Home() {
       </header>
 
       {hasMessages ? (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="fade-edges flex-1 overflow-y-auto">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6 sm:px-6">
             {messages.map((m) => (
               <ChatMessageBubble key={m.id} message={m} />
