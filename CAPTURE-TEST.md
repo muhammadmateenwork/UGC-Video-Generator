@@ -124,3 +124,38 @@ first `PROMPT` entry — was left as-is rather than "fixed", since it reflects
 a real constraint (the model used for a turn genuinely isn't knowable until
 that turn's response exists) rather than a defect; every other entry in
 both sessions resolves the model correctly.
+
+## Addendum: the actual build session needed a manual backfill
+
+The session used to build the rest of this assignment (`d5cc0a1e-...`, the
+one this file's own edits were made in) is the *same* stale session
+described above — it started before `.claude/settings.json` existed, so its
+hooks never fired for real, only for the two disposable canary sessions.
+That was only discovered partway through the build, once a `git status` on
+`.agent-logs/` after finishing the first several build tasks showed only the
+two canary files — the real build conversation was missing entirely.
+
+Rather than lose that record, [scripts/backfill-agent-log.ts](scripts/backfill-agent-log.ts)
+mechanically reconstructs it straight from the session's own transcript
+JSONL (Claude Code writes one regardless of whether project hooks are wired
+up): real human prompts are transcript entries with `origin.kind ===
+"human"`, and each one's final response is the next assistant message with
+`stop_reason === "end_turn"` (text blocks only, no thinking/tool-use) — the
+same rule the live hook uses via `last_assistant_message`. No summarizing or
+editing, just the same verbatim extraction the hook would have produced.
+
+One real gap this surfaced: when a message arrives while Claude is still
+mid-tool-use on a previous one (the user interjecting before Claude actually
+stops), multiple prompts get submitted before the next `end_turn`. Both the
+live hook and this backfill script pair a response with only the most
+recent prompt in that situation, since Claude Code itself doesn't fire a
+Stop event until it truly stops — so a couple of prompts in the real build
+log ended up unpaired rather than each getting its own response. That's a
+faithful reflection of what happened (the assistant kept working straight
+through those interjections rather than stopping to reply to each one
+individually), not a bug in the capture — left as-is per "don't edit or
+tidy up entries after the fact."
+
+The resulting `.agent-logs/2026-09-09_06-49-48_d5cc0a1e-....md` is the real
+build session's log, backfilled once so far and re-run again near the end of
+the session to catch what was still in progress when this was first written.
