@@ -131,8 +131,8 @@ export default function Home() {
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-background">
           <SparkIcon className="h-4 w-4" />
         </div>
-        <span className="font-display text-base font-bold text-foreground">
-          UGC <span className="text-accent">Video</span> Generator
+        <span className="font-display text-[15px] font-semibold text-foreground">
+          UGC Video Generator
         </span>
         {hasMessages && (
           <button

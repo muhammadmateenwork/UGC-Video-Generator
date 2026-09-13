@@ -40,14 +40,16 @@ export function ChatInput({
     }
   }
 
+  const isLarge = size === "large";
+
   return (
     <form
       onSubmit={(e: FormEvent) => {
         e.preventDefault();
         submit();
       }}
-      className={`flex items-end gap-2 rounded-full border-2 border-accent/60 bg-surface shadow-sm transition-shadow focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30 ${
-        size === "large" ? "p-2.5 pl-6" : "p-2 pl-5"
+      className={`flex flex-col gap-1 rounded-[26px] border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.25),0_10px_28px_-10px_rgba(0,0,0,0.55)] transition-colors focus-within:border-ink-soft/50 ${
+        isLarge ? "p-4" : "p-3"
       }`}
     >
       <textarea
@@ -58,22 +60,24 @@ export function ChatInput({
           resize();
         }}
         onKeyDown={handleKeyDown}
-        rows={1}
+        rows={isLarge ? 2 : 1}
         placeholder="Send a product URL, or just say hi..."
-        className={`max-h-40 flex-1 resize-none bg-transparent text-foreground placeholder:text-ink-soft/50 focus:outline-none ${
-          size === "large" ? "px-2 py-3 text-base" : "px-2 py-2 text-[15px]"
+        className={`w-full resize-none bg-transparent text-foreground placeholder:text-ink-soft/50 focus:outline-none ${
+          isLarge ? "max-h-32 text-base" : "max-h-24 text-[15px]"
         }`}
       />
-      <button
-        type="submit"
-        disabled={disabled || !value.trim()}
-        className={`flex shrink-0 items-center justify-center rounded-full bg-accent text-background transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-40 ${
-          size === "large" ? "h-12 w-12" : "h-10 w-10"
-        }`}
-        aria-label="Send message"
-      >
-        <ArrowUpIcon className="h-5 w-5" />
-      </button>
+      <div className="flex items-center justify-end">
+        <button
+          type="submit"
+          disabled={disabled || !value.trim()}
+          className={`flex shrink-0 items-center justify-center rounded-full bg-accent text-background transition-all hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 ${
+            isLarge ? "h-10 w-10" : "h-8 w-8"
+          }`}
+          aria-label="Send message"
+        >
+          <ArrowUpIcon className={isLarge ? "h-5 w-5" : "h-4 w-4"} />
+        </button>
+      </div>
     </form>
   );
 }
