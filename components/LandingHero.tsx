@@ -1,6 +1,6 @@
 "use client";
 
-import { ClockIcon, LayersIcon, LinkIcon, PlayIcon, SparkIcon, UnlockIcon, WandIcon } from "./icons";
+import { LinkIcon, PlayIcon } from "./icons";
 
 const SUGGESTIONS = [
   "I'm building CalAI, a calorie-tracking app. Here's the site: calai.app",
@@ -9,50 +9,32 @@ const SUGGESTIONS = [
 ];
 
 const STEPS = [
-  { icon: LinkIcon, text: "Share a product link in the chat" },
-  { icon: WandIcon, text: "We read the page and plan the creative" },
-  { icon: LayersIcon, text: "Real stock footage, a GIF, and trending audio get assembled" },
-  { icon: SparkIcon, text: "Your video link drops right back into the chat" },
+  "Share a product link in the chat",
+  "We read the page and plan the creative",
+  "Real stock footage, a GIF, and trending audio get assembled",
+  "Your video link drops right back into the chat",
 ];
 
-const FEATURES = [
-  { icon: ClockIcon, text: "Renders in under a minute" },
-  { icon: LayersIcon, text: "4 real layers, not AI video" },
-  { icon: UnlockIcon, text: "No sign-up to try it" },
-];
-
-/** Styled to match the real PhoneVideo player (same border-accent frame,
- * same top notch) so the promise and the payoff share one visual language —
- * this is what you'll get, not an unrelated decoration. Sized as the hero's
- * visual anchor, not a small side thumbnail. */
-function VideoPreviewCard() {
+/**
+ * Deliberately abstract, not a fake screenshot — two placeholder bars stand
+ * in for a caption and a plain play glyph for the video, so the frame reads
+ * as an honest diagram of the output rather than a mocked-up demo with
+ * invented content.
+ */
+function VideoFrame() {
   return (
-    <div className="relative mx-auto w-full max-w-[190px]">
-      <div className="absolute inset-0 -z-10 scale-90 rounded-full bg-accent/15 blur-3xl" aria-hidden />
-      <div className="animate-float relative overflow-hidden rounded-[1.75rem] border-[3px] border-accent bg-surface shadow-warm-lg">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
-          <div className="mt-2 h-4 w-20 rounded-full bg-background/80" />
-        </div>
-        <div className="relative aspect-[9/16] bg-gradient-to-b from-surface-soft to-accent-soft">
-          <div className="absolute top-8 right-3 rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-medium tracking-wide text-white/80 uppercase">
-            GIF
-          </div>
-          <div className="absolute inset-x-4 top-14 rounded-md bg-black/45 px-2.5 py-1.5 text-center text-xs font-medium text-white">
-            the drop
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <PlayIcon className="h-8 w-8 text-white/70" />
-          </div>
-          <div className="animate-waveform absolute inset-x-4 bottom-4 flex items-end gap-[3px]">
-            {[5, 9, 6, 13, 8, 11, 5, 9].map((h, i) => (
-              <span
-                key={i}
-                className="w-1 rounded-full bg-accent/80"
-                style={{ height: `${h}px`, animationDelay: `${i * 90}ms` }}
-              />
-            ))}
+    <div className="shadow-warm-lg relative mx-auto w-full max-w-[168px] overflow-hidden rounded-[1.5rem] border-2 border-accent bg-surface">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
+        <div className="mt-1.5 h-3.5 w-16 rounded-full bg-background/80" />
+      </div>
+      <div className="relative aspect-[9/16] bg-gradient-to-b from-surface-soft to-accent-soft/30">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25">
+            <PlayIcon className="ml-0.5 h-3.5 w-3.5 text-white/70" />
           </div>
         </div>
+        <div className="absolute inset-x-5 bottom-6 h-1.5 w-2/3 rounded-full bg-white/10" />
+        <div className="absolute inset-x-5 bottom-4 h-1.5 rounded-full bg-white/15" />
       </div>
     </div>
   );
@@ -64,15 +46,12 @@ export function LandingHero({
   onSuggestion: (text: string) => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-5 px-4 py-4 text-center sm:px-6">
-      <div className="animate-fade-up flex items-center gap-2.5">
-        <span className="h-4 w-1 rounded-full bg-accent" aria-hidden />
-        <span className="text-xs font-medium tracking-[0.14em] text-accent uppercase">
-          Not AI-generated, AI-organized
-        </span>
-      </div>
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 px-4 py-4 text-center sm:px-6">
+      <span className="animate-fade-up text-xs font-medium tracking-[0.14em] text-accent uppercase">
+        Not AI-generated — AI-organized
+      </span>
 
-      <div className="animate-fade-up flex w-full flex-col items-center gap-2" style={{ animationDelay: "40ms" }}>
+      <div className="animate-fade-up flex w-full flex-col items-center gap-2.5" style={{ animationDelay: "40ms" }}>
         <h1 className="font-display text-4xl leading-[1.1] font-semibold text-foreground sm:text-5xl">
           One link in.
           <br />
@@ -86,29 +65,25 @@ export function LandingHero({
       </div>
 
       <div className="animate-fade-up w-full" style={{ animationDelay: "90ms" }}>
-        <VideoPreviewCard />
+        <VideoFrame />
       </div>
 
-      <ul
-        className="animate-fade-up flex flex-wrap justify-center gap-x-4 gap-y-1.5"
-        style={{ animationDelay: "130ms" }}
-      >
-        {FEATURES.map((f) => (
-          <li key={f.text} className="flex items-center gap-1.5 text-xs font-medium text-ink-soft">
-            <f.icon className="h-3.5 w-3.5 text-accent" />
-            {f.text}
-          </li>
-        ))}
-      </ul>
+      <p className="animate-fade-up text-xs font-medium text-ink-soft/80" style={{ animationDelay: "120ms" }}>
+        Renders in under a minute
+        <span className="mx-2 text-border">·</span>
+        4 real layers, not AI video
+        <span className="mx-2 text-border">·</span>
+        No sign-up to try it
+      </p>
 
-      <div className="animate-fade-up flex w-full flex-col items-center gap-2" style={{ animationDelay: "160ms" }}>
+      <div className="animate-fade-up flex w-full flex-col items-center gap-2" style={{ animationDelay: "150ms" }}>
         <span className="text-xs font-medium text-ink-soft/70">Try an example:</span>
         <div className="flex flex-wrap justify-center gap-2">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
               onClick={() => onSuggestion(s)}
-              className="shadow-warm group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-foreground hover:shadow-warm-lg"
+              className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-left text-sm text-ink-soft transition hover:border-accent/50 hover:text-foreground"
             >
               <LinkIcon className="h-3.5 w-3.5 shrink-0 text-ink-soft/60 transition group-hover:text-accent" />
               {s}
@@ -117,22 +92,17 @@ export function LandingHero({
         </div>
       </div>
 
-      <div className="h-px w-full max-w-xs bg-gradient-to-r from-transparent via-border to-transparent" />
+      <div className="h-px w-full max-w-xs bg-border" />
 
-      <ol className="grid w-full grid-cols-1 gap-3 text-left sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="grid w-full grid-cols-1 gap-x-8 gap-y-5 text-left sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, i) => (
           <li
-            key={step.text}
-            className="shadow-warm animate-fade-up flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:shadow-warm-lg"
+            key={step}
+            className="animate-fade-up flex flex-col gap-1.5 border-t border-border pt-3"
             style={{ animationDelay: `${190 + i * 60}ms` }}
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
-              <step.icon className="h-4 w-4" />
-            </div>
-            <p className="text-sm leading-snug text-ink-soft">
-              <span className="mr-1 font-semibold text-foreground">{i + 1}.</span>
-              {step.text}
-            </p>
+            <span className="text-xs font-semibold text-accent">0{i + 1}</span>
+            <p className="text-sm leading-snug text-ink-soft">{step}</p>
           </li>
         ))}
       </ol>

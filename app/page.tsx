@@ -126,7 +126,6 @@ export default function Home() {
 
   return (
     <div className="relative flex h-screen flex-col bg-background">
-      <div className="bg-mesh pointer-events-none absolute inset-0 -z-10" />
       <div className="bg-grain pointer-events-none absolute inset-0 -z-10" />
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-background">

@@ -40,17 +40,6 @@ body {
   color: var(--foreground);
 }
 
-.bg-mesh {
-  background-image:
-    radial-gradient(ellipse 60% 45% at 15% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent),
-    radial-gradient(color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px);
-  background-repeat: no-repeat, repeat;
-  background-size: auto, 22px 22px;
-  background-position: 0 0, -11px -11px;
-  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
-  mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
-}
-
 .fade-edges {
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
   mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
@@ -130,31 +119,3 @@ body {
   animation: pulse-dot 1.2s ease-in-out infinite;
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-}
-
-@keyframes waveform {
-  0%,
-  100% {
-    transform: scaleY(0.4);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-.animate-waveform > span {
-  animation: waveform 1s ease-in-out infinite;
-  transform-origin: bottom;
-}
