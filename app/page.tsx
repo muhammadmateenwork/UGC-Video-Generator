@@ -149,29 +149,36 @@ export default function Home() {
       </header>
 
       {hasMessages ? (
-        <div ref={scrollRef} className="fade-edges flex-1 overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6 sm:px-6">
-            {messages.map((m) => (
-              <ChatMessageBubble key={m.id} message={m} />
-            ))}
+        <>
+          <div ref={scrollRef} className="fade-edges flex-1 overflow-y-auto">
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6 sm:px-6">
+              {messages.map((m) => (
+                <ChatMessageBubble key={m.id} message={m} />
+              ))}
+            </div>
           </div>
-        </div>
+
+          <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-6">
+            <div className="mx-auto w-full max-w-2xl">
+              <ChatInput
+                value={inputValue}
+                onValueChange={setInputValue}
+                onSend={handleSend}
+                disabled={pendingId !== null}
+              />
+            </div>
+          </div>
+        </>
       ) : (
         <div className="flex flex-1 flex-col overflow-y-auto">
-          <LandingHero onSuggestion={handleSend} />
-        </div>
-      )}
-
-      <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-6">
-        <div className="mx-auto w-full max-w-2xl">
-          <ChatInput
+          <LandingHero
             value={inputValue}
             onValueChange={setInputValue}
             onSend={handleSend}
             disabled={pendingId !== null}
           />
         </div>
-      </div>
+      )}
     </div>
   );
 }
