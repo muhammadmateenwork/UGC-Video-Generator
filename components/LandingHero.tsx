@@ -69,7 +69,7 @@ export function LandingHero({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-6 px-4 py-6 sm:px-6">
       <div className="grid w-full items-center gap-8 md:grid-cols-[1.15fr_0.85fr] md:gap-10">
-        <div className="animate-fade-up flex flex-col items-start gap-4 text-left">
+        <div className="animate-fade-up order-2 flex flex-col items-start gap-4 text-left md:order-1 md:col-start-1">
           <div className="flex items-center gap-2.5">
             <span className="h-4 w-1 rounded-full bg-accent" aria-hidden />
             <span className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
@@ -116,7 +116,10 @@ export function LandingHero({
           </div>
         </div>
 
-        <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
+        <div
+          className="animate-fade-up order-1 md:order-2 md:col-start-2"
+          style={{ animationDelay: "100ms" }}
+        >
           <VideoTapeCard />
         </div>
       </div>
