@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { Karla, Unbounded } from "next/font/google";
+import { Sora } from "next/font/google";
 import "./globals.css";
 
-const karla = Karla({
-  variable: "--font-karla",
+// One confident, modern grotesque for both display and body — restrained
+// on purpose after moving away from a louder, playful display face.
+// Consistent weight use (medium/semibold/bold) does the differentiation
+// instead of mixing families.
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
-});
-
-// Chunky, rounded display face for headlines and buttons — the "Neon Tape"
-// direction's loud, collage-and-sticker energy needs a display face with
-// real character, not a neutral system sans standing in for one.
-const unbounded = Unbounded({
-  variable: "--font-unbounded",
-  subsets: ["latin"],
-  weight: ["500", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${karla.variable} ${unbounded.variable} h-full`}>
+    <html lang="en" className={`${sora.variable} h-full`}>
       <body className="h-full antialiased">{children}</body>
     </html>
   );

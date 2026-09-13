@@ -1,24 +1,21 @@
 @import "tailwindcss";
 
 /*
- * Direction P ("Neon Tape") — chosen after comparing 15 mockup directions.
- * A committed dark-neon identity, not a light-mode-first palette with dark
- * as an afterthought: near-black ground, hot-pink as the primary accent,
- * cobalt and acid-yellow as secondary accents pulled straight from the
- * approved mockup. Single theme on purpose — a neon/collage identity
- * diluted into a "light mode" would stop looking like itself.
+ * Restrained dark theme — near-black ground, warm off-white text, one
+ * confident accent (a muted coral, not a neon), no gradients or novelty
+ * texture doing the talking. A single committed theme, not light-mode-first
+ * with dark bolted on — but "committed to dark" here means quiet and
+ * confident, not loud.
  */
 :root {
-  --background: #100f10;
-  --foreground: #f5f2ee;
-  --surface: #1c1b1c;
-  --surface-soft: #222124;
-  --border: #302e31;
-  --ink-soft: #a8a3a0;
-  --accent: #ff2e88;
-  --accent-soft: #4a1530;
-  --accent2: #2b6bff;
-  --accent3: #f5e400;
+  --background: #0c0c0d;
+  --foreground: #f2f1ef;
+  --surface: #151516;
+  --surface-soft: #1b1b1d;
+  --border: #262628;
+  --ink-soft: #9a9793;
+  --accent: #e2724a;
+  --accent-soft: #3a2118;
   /* Fixed dark tint for shadows regardless of surface color, so a shadow
      always reads as a shadow instead of picking up an accent hue. */
   --shadow-ink: #000000;
@@ -34,10 +31,8 @@
   --color-ink-soft: var(--ink-soft);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
-  --color-accent2: var(--accent2);
-  --color-accent3: var(--accent3);
-  --font-sans: var(--font-karla);
-  --font-display: var(--font-unbounded);
+  --font-sans: var(--font-sora);
+  --font-display: var(--font-sora);
 }
 
 body {
@@ -47,12 +42,11 @@ body {
 
 .bg-mesh {
   background-image:
-    radial-gradient(ellipse 70% 55% at 12% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 100% 15%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent),
-    radial-gradient(color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px);
-  background-repeat: no-repeat, no-repeat, repeat;
-  background-size: auto, auto, 22px 22px;
-  background-position: 0 0, 0 0, -11px -11px;
+    radial-gradient(ellipse 60% 45% at 15% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent),
+    radial-gradient(color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, 22px 22px;
+  background-position: 0 0, -11px -11px;
   -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
   mask-image: radial-gradient(ellipse 90% 75% at 50% 20%, black 40%, transparent 85%);
 }
@@ -67,31 +61,20 @@ body {
    a ground this dark. */
 .bg-grain {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.05;
+  opacity: 0.035;
   mix-blend-mode: screen;
 }
 
 .shadow-warm {
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--shadow-ink) 30%, transparent),
-    0 8px 20px -6px color-mix(in srgb, var(--accent) 22%, transparent);
+    0 8px 20px -6px color-mix(in srgb, var(--shadow-ink) 35%, transparent);
 }
 
 .shadow-warm-lg {
   box-shadow:
     0 2px 4px color-mix(in srgb, var(--shadow-ink) 35%, transparent),
-    0 16px 32px -10px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-
-/* Diagonal-stripe "tape" texture used on the hero's video-card mockup. */
-.tape-stripe {
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--accent2) 0px,
-    var(--accent2) 6px,
-    var(--accent3) 6px,
-    var(--accent3) 12px
-  );
+    0 16px 32px -10px color-mix(in srgb, var(--shadow-ink) 45%, transparent);
 }
 
 ::selection {
@@ -150,10 +133,10 @@ body {
 @keyframes float {
   0%,
   100% {
-    transform: translateY(0) rotate(-2deg);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px) rotate(-2deg);
+    transform: translateY(-6px);
   }
 }
 
