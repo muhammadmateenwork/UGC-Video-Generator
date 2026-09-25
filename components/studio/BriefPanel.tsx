@@ -47,7 +47,7 @@ export function BriefPanel({ project, loading }: { project: ProjectDTO; loading:
           <p className="font-mono text-[11px] tracking-[0.12em] text-ink-3 uppercase">The angle</p>
           {project.planSource && (
             <span
-              className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${
+              className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] whitespace-nowrap ${
                 project.planSource === "gemini" ? "bg-paper-2 text-ink-2" : "bg-rec-soft text-rec"
               }`}
               title={project.planSource === "gemini" ? undefined : "Gemini was unavailable, so a generic plan was used"}
