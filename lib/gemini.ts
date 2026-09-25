@@ -1,6 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+// Tried in order. Observed directly while testing: Google returns 503 "high
+// demand" for one flash model while a neighbouring one answers fine, and it
+// flips back and forth minute to minute — so an overloaded model moves on to
+// the next one instead of dropping straight to the fallback plan.
+const MODELS = [
+  ...new Set([process.env.GEMINI_MODEL || "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]),
+];
 
 // Free-tier quota (20 req/day) is scoped to the underlying Cloud project, not
 // the individual key — multiple keys from the SAME Google account share one
@@ -36,15 +42,19 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Confirmed directly (a local call hung for a full 2 minutes with nothing
 // else changed) — the SDK call has no built-in timeout, so an unresponsive
 // or slow-to-answer endpoint just hangs forever instead of failing over to
-// the next key or the deterministic fallback plan.
-const PER_CALL_TIMEOUT_MS = 8000;
+// the next key or the deterministic fallback plan. Measured on gemini-3.6-flash:
+// successful plans take 5–9s, so the earlier 8s cap was cutting off answers
+// that were about to arrive — 12s leaves headroom without hanging.
+const PER_CALL_TIMEOUT_MS = 12000;
 // All keys from the same Google account share ONE quota pool (confirmed
 // separately, see lib assets notes) — trying more than a handful once one
 // is exhausted buys nothing but latency. Cap both how many keys get tried
 // and the total wall-clock time so a bad run degrades to the fallback plan
 // in seconds, not minutes.
 const MAX_KEYS_TO_TRY = 4;
-const OVERALL_BUDGET_MS = 15000;
+// Sized to reach the second model in the chain after a slow first attempt,
+// while leaving the prepare route (60s max) room for scraping and sourcing.
+const OVERALL_BUDGET_MS = 28000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -73,7 +83,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
  * caller's deterministic fallback — in seconds rather than hanging.
  */
 async function withKeyRotationAndRetry<T>(
-  call: (apiKey: string) => Promise<T>
+  call: (apiKey: string, model: string) => Promise<T>
 ): Promise<T> {
   const keys = getApiKeys().slice(0, MAX_KEYS_TO_TRY);
   if (keys.length === 0) {
@@ -83,18 +93,21 @@ async function withKeyRotationAndRetry<T>(
   const deadline = Date.now() + OVERALL_BUDGET_MS;
   let lastError: unknown;
 
-  keyLoop: for (const key of keys) {
+  const targets = keys.flatMap((key) => MODELS.map((model) => ({ key, model })));
+  keyLoop: for (const { key, model } of targets) {
     if (Date.now() >= deadline) break;
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (Date.now() >= deadline) break keyLoop;
       try {
-        return await withTimeout(call(key), PER_CALL_TIMEOUT_MS, "Gemini request");
+        return await withTimeout(call(key, model), PER_CALL_TIMEOUT_MS, "Gemini request");
       } catch (err) {
         lastError = err;
         const status = extractStatus(err);
         if (status === 400) throw err; // malformed request — no key will fix that
-        if (status === 429) continue keyLoop; // this key's quota is exhausted, try the next key
+        const timedOut = err instanceof Error && err.message.includes("timed out");
+        // Quota exhausted, model overloaded, or too slow right now — a different model/key is the best bet.
+        if (status === 429 || status === 503 || timedOut) continue keyLoop;
         if (attempt < maxAttempts) {
           await sleep(300 * attempt);
           continue;
@@ -104,17 +117,17 @@ async function withKeyRotationAndRetry<T>(
     }
   }
   throw new GeminiUnavailableError(
-    `Gemini unavailable after trying ${keys.length} key(s). Last error: ${
+    `Gemini unavailable after trying ${keys.length} key(s) x ${MODELS.length} model(s). Last error: ${
       lastError instanceof Error ? lastError.message : String(lastError)
     }`
   );
 }
 
 async function generateJson<T>(prompt: string): Promise<T> {
-  const text = await withKeyRotationAndRetry(async (apiKey) => {
+  const text = await withKeyRotationAndRetry(async (apiKey, modelName) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: MODEL_NAME,
+      model: modelName,
       generationConfig: { responseMimeType: "application/json" },
     });
     const result = await model.generateContent(prompt);
@@ -128,40 +141,9 @@ async function generateJson<T>(prompt: string): Promise<T> {
   }
 }
 
-export interface ChatClassification {
-  intent: "chat" | "product_no_url";
-  reply: string;
-}
-
-/**
- * One combined call: classify the message as ordinary conversation vs. "this
- * is a product but there's no URL to work with", and draft the reply either
- * way. Only invoked when regex hasn't already found a URL and the message
- * doesn't match one of the two canned patterns the brief calls out — keeping
- * this to a single LLM call per non-trivial message is what makes the daily
- * quota survive a real grading session.
- */
-export async function classifyAndReply(message: string): Promise<ChatClassification> {
-  const prompt = `You are the chat backend for a UGC video generator product. A user just sent this message:
-
-"""
-${message}
-"""
-
-Decide which of these two cases applies:
-- "chat": ordinary conversation (greetings, small talk, questions about you, anything not asking for a product video).
-- "product_no_url": the user is describing a product or business they want a marketing video for, but did not include a URL/domain for it.
-
-Then draft a short, natural reply in the voice of a helpful, friendly assistant (like ChatGPT) — one or two sentences, no markdown headers.
-- If "chat", just reply naturally to what they said.
-- If "product_no_url", acknowledge what they're building and ask them to share the product's URL so you can generate the video.
-
-Respond with ONLY strict JSON, no markdown fences: {"intent": "chat" | "product_no_url", "reply": "..."}`;
-
-  return generateJson<ChatClassification>(prompt);
-}
-
 export interface CreativePlan {
+  /** One sentence naming the single idea every layer supports. */
+  angle: string;
   caption: string;
   backgroundQuery: string;
   gifQuery: string;
@@ -171,17 +153,17 @@ export interface CreativePlan {
 /**
  * Plans the four-layer creative from scraped product content: a short
  * on-screen caption, a Pexels search phrase for the background, a Giphy
- * search term for the overlay GIF, and a Freesound search term for trending
- * audio. All four are meant to cohere around one idea, not be picked
+ * search term for the overlay GIF, and a Freesound search term for audio.
+ * All four are meant to cohere around one `angle`, not be picked
  * independently — that's what makes the assembled clip read as "organized"
- * rather than a random background + random GIF + random caption.
+ * rather than a random background + random GIF + random caption. The angle
+ * is returned (and shown in the studio) so the plan is legible, not magic.
  */
 export async function planCreative(input: {
   url: string;
   title: string;
   description: string;
   bodyText: string;
-  userMessage: string;
 }): Promise<CreativePlan> {
   const prompt = `You are planning a 7-second vertical UGC-style marketing video (think TikTok/Reels ad) for this product. You are NOT generating any media — you are choosing search terms so the app can source real stock footage, a real GIF, and real trending-style audio that all support ONE coherent creative idea.
 
@@ -189,17 +171,27 @@ Product URL: ${input.url}
 Page title: ${input.title}
 Page description: ${input.description}
 Page text excerpt: ${input.bodyText.slice(0, 800)}
-User's message: "${input.userMessage}"
 
 Return strict JSON only, no markdown fences, with exactly these keys:
 {
+  "angle": "one short sentence (max 14 words) naming the single emotional idea this ad sells, e.g. 'the relief of never guessing calories again'",
   "caption": "on-screen text overlay, at most 6 words, punchy/trendy lowercase social-media style, must relate directly to what this specific product does",
   "backgroundQuery": "2-4 word visual search phrase for stock video/photo footage that fits the product's world (e.g. the activity, setting, or feeling it sells) — NOT the brand name, stock libraries won't have that",
   "gifQuery": "1-3 word search term for a reaction/mood GIF that punctuates the caption's feeling (surprise, excitement, satisfaction, etc.) — think meme/reaction GIF, not a literal product shot",
   "audioQuery": "1-3 word music genre/mood search term for background audio that matches the energy (e.g. upbeat, chill, epic, lofi)"
 }
 
-The caption, backgroundQuery, and gifQuery must all clearly connect to the SAME idea about this specific product — not generic stock phrases that could apply to anything.`;
+The caption, backgroundQuery, and gifQuery must all clearly connect to the angle — not generic stock phrases that could apply to anything.`;
 
-  return generateJson<CreativePlan>(prompt);
+  const plan = await generateJson<Partial<CreativePlan>>(prompt);
+  if (!plan.caption || !plan.backgroundQuery || !plan.gifQuery || !plan.audioQuery) {
+    throw new GeminiUnavailableError("Gemini returned an incomplete plan");
+  }
+  return {
+    angle: plan.angle?.trim() || "",
+    caption: plan.caption.trim(),
+    backgroundQuery: plan.backgroundQuery.trim(),
+    gifQuery: plan.gifQuery.trim(),
+    audioQuery: plan.audioQuery.trim(),
+  };
 }

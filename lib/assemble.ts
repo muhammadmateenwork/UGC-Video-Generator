@@ -5,23 +5,19 @@ import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import { renderCaptionImage } from "./captionImage";
+import { COMPOSITION } from "./composition";
 
 const run = promisify(execFile);
 
-const FPS = 30;
-const WIDTH = 720;
-const HEIGHT = 1280;
-// A GIF this wide, centered, used to sit directly on top of the background's
-// main subject (e.g. covering the product itself) instead of reading as a
-// reaction accent. Sized and corner-anchored instead, closer to how real
-// UGC edits place a reaction GIF without blocking the shot underneath it.
-const GIF_WIDTH = 250;
-const CLIP_DURATION = 7;
-const FADE_SECONDS = 0.4;
-// Ink brand color from the app's own palette, used as a fallback background
+const { fps: FPS, width: WIDTH, height: HEIGHT, duration: CLIP_DURATION, fade: FADE_SECONDS } = COMPOSITION;
+// Sized and corner-anchored, not centered: a full-width centered GIF used
+// to sit directly on top of the background's main subject instead of
+// reading as a reaction accent. Same spec the studio preview draws from.
+const GIF = COMPOSITION.gif;
+// Ink colour from the app's own palette, used as a fallback background
 // if no stock asset could be sourced at all — never leaves the user with a
 // failed render just because Pexels had nothing for an unusual query.
-const FALLBACK_BG_COLOR = "0x18181b";
+const FALLBACK_BG_COLOR = "0x161513";
 
 export interface UgcClipInput {
   /** null means no background asset was sourced — falls back to a solid brand-color canvas. */
@@ -119,19 +115,19 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
 
     if (captionInputIndex !== null) {
       filters.push(
-        `[${pad}][${captionInputIndex}:v]overlay=x=0:y=90:format=auto[cap]`
+        `[${pad}][${captionInputIndex}:v]overlay=x=0:y=${COMPOSITION.caption.y}:format=auto[cap]`
       );
       pad = "cap";
     }
 
     if (gifInputIndex !== null) {
-      const gifStart = duration * 0.12;
-      const gifEnd = duration * 0.78;
-      filters.push(`[${gifInputIndex}:v]scale=${GIF_WIDTH}:-1[gifscaled]`);
+      const gifStart = duration * GIF.start;
+      const gifEnd = duration * GIF.end;
+      filters.push(`[${gifInputIndex}:v]scale=${GIF.width}:-1[gifscaled]`);
       // Bottom-right corner, not dead center — leaves the background's main
       // subject fully visible instead of the GIF sitting on top of it.
       filters.push(
-        `[${pad}][gifscaled]overlay=x=W-w-28:y=H*0.60:format=auto:` +
+        `[${pad}][gifscaled]overlay=x=W-w-${GIF.right}:y=H*${GIF.top}:format=auto:` +
           `enable='between(t\\,${gifStart.toFixed(2)}\\,${gifEnd.toFixed(2)})'[withgif]`
       );
       pad = "withgif";

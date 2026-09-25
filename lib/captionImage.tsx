@@ -1,24 +1,20 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ImageResponse } from "next/og";
+import { COMPOSITION, wrapCaptionLines } from "./composition";
 
-const CANVAS_WIDTH = 720;
-const CANVAS_HEIGHT = 200;
+export { wrapCaptionLines };
 
-/** Wraps caption text onto at most 2 lines so it never overflows the frame width. */
-export function wrapCaptionLines(text: string, maxCharsPerLine = 20): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > maxCharsPerLine && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = candidate;
-    }
-  }
-  if (current) lines.push(current);
-  return lines.slice(0, 2);
+const C = COMPOSITION.caption;
+
+// next/og only bundles a regular-weight font, so fontWeight: 700 silently
+// rendered thin — caught by comparing a real render against the studio
+// preview side by side. Loading the same Inter ExtraBold the preview uses
+// makes the two actually match. (Satori reads woff/ttf, not woff2.)
+let fontData: Promise<Buffer> | null = null;
+function captionFont() {
+  fontData ??= readFile(path.join(process.cwd(), "assets", "fonts", "Inter-ExtraBold.woff"));
+  return fontData;
 }
 
 /**
@@ -32,17 +28,18 @@ export function wrapCaptionLines(text: string, maxCharsPerLine = 20): string[] {
  */
 export async function renderCaptionImage(caption: string): Promise<Buffer> {
   const lines = wrapCaptionLines(caption);
+  const font = await captionFont();
 
   const image = new ImageResponse(
     (
       <div
         style={{
           display: "flex",
-          width: CANVAS_WIDTH,
-          height: CANVAS_HEIGHT,
+          width: COMPOSITION.width,
+          height: C.canvasHeight,
           alignItems: "flex-start",
           justifyContent: "center",
-          paddingTop: 20,
+          paddingTop: C.paddingTop,
         }}
       >
         <div
@@ -50,8 +47,8 @@ export async function renderCaptionImage(caption: string): Promise<Buffer> {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.45)",
-            padding: "14px 24px",
+            backgroundColor: C.boxColor,
+            padding: `${C.padY}px ${C.padX}px`,
           }}
         >
           {lines.map((line, i) => (
@@ -59,9 +56,11 @@ export async function renderCaptionImage(caption: string): Promise<Buffer> {
               key={i}
               style={{
                 color: "white",
-                fontSize: 48,
-                fontWeight: 700,
-                lineHeight: 1.25,
+                fontSize: C.fontSize,
+                fontFamily: "Inter",
+                fontWeight: C.fontWeight,
+                letterSpacing: C.letterSpacing,
+                lineHeight: C.lineHeight,
               }}
             >
               {line}
@@ -70,7 +69,11 @@ export async function renderCaptionImage(caption: string): Promise<Buffer> {
         </div>
       </div>
     ),
-    { width: CANVAS_WIDTH, height: CANVAS_HEIGHT }
+    {
+      width: COMPOSITION.width,
+      height: C.canvasHeight,
+      fonts: [{ name: "Inter", data: font, weight: C.fontWeight, style: "normal" }],
+    }
   );
 
   const arrayBuffer = await image.arrayBuffer();
