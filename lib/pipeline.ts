@@ -6,6 +6,7 @@ import { AUDIO_MAX_BYTES, fetchBuffer, sourceLayer, type LayerCandidate } from "
 import { assembleUgcClip } from "./assemble";
 import { storeVideo } from "./storage";
 import { STALE_LOCK_MS, toProjectDTO, type ProjectDTO } from "./dto";
+import { CAPTION_STYLE_META, isCaptionStyle, type CaptionStyle } from "./composition";
 
 export const LAYER_KINDS: LayerKind[] = ["background", "gif", "audio"];
 
@@ -244,14 +245,19 @@ export async function shuffleLayer(
   );
 }
 
-export async function updateCaption(id: string, ownerId: string, caption: string): Promise<void> {
+export async function updateCaption(
+  id: string,
+  ownerId: string,
+  patch: { caption?: string; captionStyle?: CaptionStyle }
+): Promise<void> {
   const [row] = await db()
     .update(projects)
-    .set({ caption })
+    .set(patch)
     .where(and(eq(projects.id, id), eq(projects.ownerId, ownerId)))
     .returning({ id: projects.id });
   if (!row) throw new PipelineError("Project not found", 404);
-  await logEvent(id, "edit", `caption: "${caption}"`);
+  if (patch.caption !== undefined) await logEvent(id, "edit", `caption: "${patch.caption}"`);
+  if (patch.captionStyle) await logEvent(id, "edit", `caption style: ${CAPTION_STYLE_META[patch.captionStyle].label}`);
 }
 
 /** download → render → upload. Always leaves the project re-renderable. */
@@ -302,6 +308,7 @@ export async function renderProject(id: string, ownerId: string, emit: Emit): Pr
         gifBuffer: media.gif,
         audioBuffer: media.audio,
         caption: project.caption ?? "",
+        captionStyle: isCaptionStyle(project.captionStyle) ? project.captionStyle : "box",
       });
       return { value: buffer, message: `Encoded 7s 720×1280 H.264 (${(buffer.length / 1e6).toFixed(1)} MB)` };
     });

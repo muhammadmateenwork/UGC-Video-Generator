@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CAPTION_STYLES } from "@/lib/composition";
 import { getOwnerId } from "@/lib/owner";
 import { deleteProject, loadProject, updateCaption } from "@/lib/pipeline";
 import { handleError, jsonError, uuidSchema } from "@/lib/http";
@@ -15,18 +16,20 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/projects/[id]">
   }
 }
 
-const patchBody = z.object({
-  caption: z.string().trim().min(1, "Caption can't be empty").max(60, "Keep the caption under 60 characters"),
-});
+const patchBody = z
+  .object({
+    caption: z.string().trim().min(1, "Caption can't be empty").max(60, "Keep the caption under 60 characters").optional(),
+    captionStyle: z.enum(CAPTION_STYLES).optional(),
+  })
+  .refine((b) => b.caption !== undefined || b.captionStyle !== undefined, "Nothing to update");
 
-/** PATCH /api/projects/:id { caption } */
+/** PATCH /api/projects/:id { caption?, captionStyle? } */
 export async function PATCH(req: Request, ctx: RouteContext<"/api/projects/[id]">) {
   try {
     const id = uuidSchema.parse((await ctx.params).id);
     const ownerId = await getOwnerId();
     if (!ownerId) return jsonError("Not your project", 403);
-    const { caption } = patchBody.parse(await req.json().catch(() => ({})));
-    await updateCaption(id, ownerId, caption);
+    await updateCaption(id, ownerId, patchBody.parse(await req.json().catch(() => ({}))));
     return Response.json({ project: await loadProject(id, ownerId) });
   } catch (err) {
     return handleError(err);

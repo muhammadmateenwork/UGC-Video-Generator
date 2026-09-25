@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "caption_style" text DEFAULT 'box' NOT NULL;

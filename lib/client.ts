@@ -1,5 +1,6 @@
 import type { ProjectDTO } from "./dto";
 import type { LayerKind } from "./db/schema";
+import type { CaptionStyle } from "./composition";
 import type { PipelineEvent } from "./pipeline";
 
 /** Browser-side API client — thin, typed wrappers over the REST endpoints. */
@@ -26,11 +27,14 @@ export async function createProject(url: string): Promise<string> {
   return (await json<{ id: string }>(res)).id;
 }
 
-export async function patchCaption(id: string, caption: string): Promise<ProjectDTO> {
+export async function patchProject(
+  id: string,
+  patch: { caption?: string; captionStyle?: CaptionStyle }
+): Promise<ProjectDTO> {
   const res = await fetch(`/api/projects/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ caption }),
+    body: JSON.stringify(patch),
   });
   return (await json<{ project: ProjectDTO }>(res)).project;
 }

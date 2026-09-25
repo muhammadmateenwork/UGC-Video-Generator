@@ -43,6 +43,8 @@ export const projects = pgTable(
     imageUrl: text("image_url"),
     status: projectStatus("status").notNull().default("draft"),
     caption: text("caption"),
+    /** One of CAPTION_STYLES in lib/composition.ts — read by both the preview and the renderer. */
+    captionStyle: text("caption_style").notNull().default("box"),
     /** The one-line creative idea the AI planned around, shown so the plan is legible, not a black box. */
     angle: text("angle"),
     /** "gemini" or "fallback" — surfaced in the UI instead of silently degrading. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { COMPOSITION, wrapCaptionLines } from "@/lib/composition";
+import { COMPOSITION, captionCss, wrapCaptionLines, type CaptionStyle } from "@/lib/composition";
 import type { LayerDTO } from "@/lib/dto";
 
 const { width: W, height: H, duration: D, fade: FADE, caption: C, gif: G } = COMPOSITION;
@@ -40,6 +40,7 @@ export function PreviewCanvas({
   gif,
   audio,
   caption,
+  captionStyle,
   t,
   playing,
   muted,
@@ -48,6 +49,7 @@ export function PreviewCanvas({
   gif?: LayerDTO;
   audio?: LayerDTO;
   caption: string;
+  captionStyle: CaptionStyle;
   t: number;
   playing: boolean;
   muted: boolean;
@@ -64,6 +66,7 @@ export function PreviewCanvas({
 
   const gifVisible = t >= D * G.start && t <= D * G.end;
   const lines = wrapCaptionLines(caption);
+  const css = captionCss(captionStyle, cqw);
 
   return (
     <div className="canvas relative aspect-[9/16] w-full overflow-hidden rounded-[20px] bg-ink">
@@ -91,20 +94,9 @@ export function PreviewCanvas({
           className="absolute inset-x-0 flex justify-center"
           style={{ top: `${((C.y + C.paddingTop) / H) * 100}%` }}
         >
-          <div
-            className="flex flex-col items-center text-center text-white"
-            style={{
-              background: C.boxColor,
-              padding: `${cqw(C.padY)} ${cqw(C.padX)}`,
-              fontSize: cqw(C.fontSize),
-              lineHeight: C.lineHeight,
-              fontFamily: "var(--font-caption)",
-              fontWeight: C.fontWeight,
-              letterSpacing: cqw(C.letterSpacing),
-            }}
-          >
+          <div className="text-center" style={css.box}>
             {lines.map((l, i) => (
-              <span key={i} className="whitespace-nowrap">
+              <span key={i} style={{ ...css.line, fontFamily: "var(--font-caption)" }}>
                 {l}
               </span>
             ))}

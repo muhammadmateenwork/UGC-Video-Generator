@@ -1,7 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { wrapCaptionLines } from "@/lib/composition";
+import {
+  CAPTION_STYLES,
+  CAPTION_STYLE_META,
+  captionCss,
+  wrapCaptionLines,
+  type CaptionStyle,
+} from "@/lib/composition";
 import { TRACKS } from "@/lib/layerMeta";
 import { CheckIcon, Spinner } from "../icons";
 
@@ -13,14 +19,18 @@ const MAX = 60;
  */
 export function CaptionCard({
   caption,
+  captionStyle,
   disabled,
   onDraft,
   onSave,
+  onStyle,
 }: {
   caption: string;
+  captionStyle: CaptionStyle;
   disabled: boolean;
   onDraft: (value: string) => void;
   onSave: (value: string) => Promise<void>;
+  onStyle: (style: CaptionStyle) => void;
 }) {
   const [draft, setDraft] = useState(caption);
   const [synced, setSynced] = useState(caption);
@@ -106,11 +116,51 @@ export function CaptionCard({
           {draft.length}/{MAX}
         </span>
       </div>
+      <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Caption style">
+        {CAPTION_STYLES.map((s) => (
+          <StyleSwatch key={s} style={s} active={s === captionStyle} disabled={disabled} onPick={() => onStyle(s)} />
+        ))}
+      </div>
       {error && (
         <p role="alert" className="mt-1 text-[12px] text-rec">
           {error}
         </p>
       )}
     </section>
+  );
+}
+
+/** A real miniature of the style — drawn with the same captionCss the renderer uses, just scaled down. */
+function StyleSwatch({
+  style,
+  active,
+  disabled,
+  onPick,
+}: {
+  style: CaptionStyle;
+  active: boolean;
+  disabled: boolean;
+  onPick: () => void;
+}) {
+  const css = captionCss(style, (px) => `${(px * 0.3).toFixed(2)}px`);
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      disabled={disabled}
+      onClick={onPick}
+      title={CAPTION_STYLE_META[style].hint}
+      className={`group flex flex-col items-center gap-1 rounded-lg border p-1.5 transition disabled:opacity-50 ${
+        active ? "border-ink bg-paper" : "border-line hover:border-ink-3"
+      }`}
+    >
+      <span className="grid h-9 w-full place-items-center overflow-hidden rounded-md bg-[linear-gradient(135deg,#6f8f64,#c9b793)]">
+        <span style={css.box}>
+          <span style={{ ...css.line, fontFamily: "var(--font-caption)" }}>Aa</span>
+        </span>
+      </span>
+      <span className={`text-[11px] ${active ? "font-semibold text-ink" : "text-ink-3"}`}>{CAPTION_STYLE_META[style].label}</span>
+    </button>
   );
 }

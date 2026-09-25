@@ -1,4 +1,5 @@
 import type { Layer, LayerKind, Project, ProjectEvent, ProjectStatus } from "./db/schema";
+import { isCaptionStyle, type CaptionStyle } from "./composition";
 
 /** A busy phase (preparing/rendering) whose row hasn't changed in this long is presumed dead and may be retried. */
 export const STALE_LOCK_MS = 90_000;
@@ -37,6 +38,7 @@ export interface ProjectDTO {
   imageUrl: string | null;
   status: ProjectStatus;
   caption: string | null;
+  captionStyle: CaptionStyle;
   angle: string | null;
   planSource: string | null;
   videoUrl: string | null;
@@ -100,6 +102,7 @@ export function toProjectDTO(
     imageUrl: p.imageUrl,
     status: p.status,
     caption: p.caption,
+    captionStyle: isCaptionStyle(p.captionStyle) ? p.captionStyle : "box",
     angle: p.angle,
     planSource: p.planSource,
     videoUrl: p.videoUrl,

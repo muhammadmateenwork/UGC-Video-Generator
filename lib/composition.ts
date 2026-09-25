@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 /**
  * The single source of truth for how a clip is laid out in space and time.
  * lib/assemble.ts (ffmpeg) and the studio's live preview both read from
@@ -57,4 +59,82 @@ export function wrapCaptionLines(
   }
   if (current) lines.push(current);
   return lines.slice(0, COMPOSITION.caption.maxLines);
+}
+
+export const CAPTION_STYLES = ["box", "outline", "pill", "pop"] as const;
+export type CaptionStyle = (typeof CAPTION_STYLES)[number];
+
+export const CAPTION_STYLE_META: Record<CaptionStyle, { label: string; hint: string }> = {
+  box: { label: "Boxed", hint: "Clean text on a translucent bar" },
+  outline: { label: "Outline", hint: "Classic stroked meme text" },
+  pill: { label: "TikTok", hint: "Native-app white pills" },
+  pop: { label: "Pop", hint: "Loud yellow, all caps" },
+};
+
+export function isCaptionStyle(v: unknown): v is CaptionStyle {
+  return typeof v === "string" && (CAPTION_STYLES as readonly string[]).includes(v);
+}
+
+/**
+ * The CSS for each caption style, written once in render pixels. `u`
+ * converts a pixel value into the target's unit: plain px for the Satori
+ * renderer that burns the caption into the MP4, container-query units for
+ * the live preview — so a style can't look different in the two places.
+ * Only properties Satori supports are used (no paint-order, no filters).
+ */
+export function captionCss(style: CaptionStyle, u: (px: number) => string): { box: CSSProperties; line: CSSProperties } {
+  const C = COMPOSITION.caption;
+  const base: CSSProperties = {
+    color: "white",
+    fontSize: u(C.fontSize),
+    fontWeight: C.fontWeight,
+    letterSpacing: u(C.letterSpacing),
+    lineHeight: C.lineHeight,
+    whiteSpace: "nowrap",
+  };
+  const column: CSSProperties = { display: "flex", flexDirection: "column", alignItems: "center" };
+
+  switch (style) {
+    case "outline":
+      return {
+        box: column,
+        line: {
+          ...base,
+          fontSize: u(54),
+          WebkitTextStroke: `${u(3)} #000`,
+          textShadow: `0 ${u(4)} ${u(14)} rgba(0,0,0,0.45)`,
+        },
+      };
+    case "pill":
+      return {
+        box: { ...column, gap: u(0) },
+        line: {
+          ...base,
+          color: "#111",
+          backgroundColor: "white",
+          borderRadius: u(14),
+          padding: `${u(4)} ${u(20)}`,
+          fontSize: u(44),
+        },
+      };
+    case "pop":
+      return {
+        box: column,
+        line: {
+          ...base,
+          color: "#ffe14d",
+          textTransform: "uppercase",
+          fontSize: u(46),
+          letterSpacing: u(0.5),
+          WebkitTextStroke: `${u(2)} #111`,
+          textShadow: `${u(4)} ${u(5)} 0 #111`,
+        },
+      };
+    case "box":
+    default:
+      return {
+        box: { ...column, backgroundColor: C.boxColor, padding: `${u(C.padY)} ${u(C.padX)}` },
+        line: base,
+      };
+  }
 }

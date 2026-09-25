@@ -5,7 +5,7 @@ import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import { renderCaptionImage } from "./captionImage";
-import { COMPOSITION } from "./composition";
+import { COMPOSITION, type CaptionStyle } from "./composition";
 
 const run = promisify(execFile);
 
@@ -25,6 +25,7 @@ export interface UgcClipInput {
   gifBuffer: Buffer | null;
   audioBuffer: Buffer | null;
   caption: string;
+  captionStyle?: CaptionStyle;
   durationSeconds?: number;
 }
 
@@ -80,7 +81,7 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
     // --- Input (optional): pre-rendered caption PNG ---
     let captionInputIndex: number | null = null;
     if (caption) {
-      const captionBuffer = await renderCaptionImage(caption);
+      const captionBuffer = await renderCaptionImage(caption, input.captionStyle);
       const captionPath = path.join(jobDir, "caption.png");
       await fs.writeFile(captionPath, captionBuffer);
       captionInputIndex = nextInputIndex++;

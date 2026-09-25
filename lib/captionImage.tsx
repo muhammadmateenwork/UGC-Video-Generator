@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { ImageResponse } from "next/og";
-import { COMPOSITION, wrapCaptionLines } from "./composition";
+import { loadFont } from "./fonts";
+import { COMPOSITION, captionCss, wrapCaptionLines, type CaptionStyle } from "./composition";
 
 export { wrapCaptionLines };
 
@@ -9,13 +8,8 @@ const C = COMPOSITION.caption;
 
 // next/og only bundles a regular-weight font, so fontWeight: 700 silently
 // rendered thin — caught by comparing a real render against the studio
-// preview side by side. Loading the same Inter ExtraBold the preview uses
-// makes the two actually match. (Satori reads woff/ttf, not woff2.)
-let fontData: Promise<Buffer> | null = null;
-function captionFont() {
-  fontData ??= readFile(path.join(process.cwd(), "assets", "fonts", "Inter-ExtraBold.woff"));
-  return fontData;
-}
+// preview side by side. Using the same Inter ExtraBold the preview loads
+// makes the two actually match.
 
 /**
  * Renders the caption as a transparent PNG instead of using ffmpeg's
@@ -26,9 +20,10 @@ function captionFont() {
  * "No such filter: 'drawtext'". overlay has no such dependency, so this
  * works on any ffmpeg build.
  */
-export async function renderCaptionImage(caption: string): Promise<Buffer> {
+export async function renderCaptionImage(caption: string, style: CaptionStyle = "box"): Promise<Buffer> {
   const lines = wrapCaptionLines(caption);
-  const font = await captionFont();
+  const font = await loadFont("interExtraBold");
+  const css = captionCss(style, (px) => `${px}px`);
 
   const image = new ImageResponse(
     (
@@ -42,27 +37,9 @@ export async function renderCaptionImage(caption: string): Promise<Buffer> {
           paddingTop: C.paddingTop,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            backgroundColor: C.boxColor,
-            padding: `${C.padY}px ${C.padX}px`,
-          }}
-        >
+        <div style={css.box}>
           {lines.map((line, i) => (
-            <div
-              key={i}
-              style={{
-                color: "white",
-                fontSize: C.fontSize,
-                fontFamily: "Inter",
-                fontWeight: C.fontWeight,
-                letterSpacing: C.letterSpacing,
-                lineHeight: C.lineHeight,
-              }}
-            >
+            <div key={i} style={{ ...css.line, fontFamily: "Inter" }}>
               {line}
             </div>
           ))}

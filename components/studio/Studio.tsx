@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { COMPOSITION } from "@/lib/composition";
 import { STALE_LOCK_MS, type ProjectDTO } from "@/lib/dto";
 import type { Stage } from "@/lib/pipeline";
-import { patchCaption, runPipeline, swapLayer } from "@/lib/client";
+import { patchProject, runPipeline, swapLayer } from "@/lib/client";
+import { CAPTION_STYLES, CAPTION_STYLE_META, type CaptionStyle } from "@/lib/composition";
+import { toast } from "../Toaster";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { BriefPanel } from "./BriefPanel";
 import { CaptionCard } from "./CaptionCard";
 import { LayerCard } from "./LayerCard";
@@ -57,6 +60,7 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
   const [muted, setMuted] = useState(true);
   const clock = useClock(COMPOSITION.duration, 1.5);
   const autoStarted = useRef(false);
+  const [showKeys, setShowKeys] = useState(false);
 
   // Mirrors the server's lock takeover: a busy phase nobody is driving, whose
   // row hasn't changed in 90s, died (e.g. a serverless timeout) and can be retried.
@@ -91,9 +95,12 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
       if (next === "render" && !failed) {
         setView("render");
         clock.setPlaying(false);
+        toast("Your video is ready", "ok");
       }
+      if (failed) toast(next === "render" ? "Render failed. Details are in the panel." : "Preparing failed", "error");
     } catch (err) {
       setPhaseError(err instanceof Error ? err.message : "Something went wrong");
+      toast(err instanceof Error ? err.message : "Something went wrong", "error");
     } finally {
       setPhase(null);
     }
@@ -127,28 +134,136 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
       setProject(await swapLayer(project.id, kind, opts));
       setView("preview");
     } catch (err) {
-      setLayerErrors((e) => ({ ...e, [kind]: err instanceof Error ? err.message : "Couldn't swap that" }));
+      const message = err instanceof Error ? err.message : "Couldn't swap that";
+      setLayerErrors((e) => ({ ...e, [kind]: message }));
+      toast(message, "error");
     } finally {
       setBusyLayer(null);
     }
   }
 
   async function onSaveCaption(value: string) {
-    setProject(await patchCaption(project.id, value));
+    setProject(await patchProject(project.id, { caption: value }));
+  }
+
+  async function onCaptionStyle(style: CaptionStyle) {
+    if (style === project.captionStyle) return;
+    const previous = project;
+    setProject({ ...project, captionStyle: style }); // optimistic — the preview switches instantly
+    setView("preview");
+    try {
+      setProject(await patchProject(project.id, { captionStyle: style }));
+    } catch (err) {
+      setProject(previous);
+      toast(err instanceof Error ? err.message : "Couldn't change the style", "error");
+    }
   }
 
   const editable = project.isOwner && !preparing && !rendering;
   const showRender = view === "render" && !!project.videoUrl;
+  const canRender = project.isOwner && !preparing && !rendering && busyLayer === null;
+
+  // Editor-style shortcuts. useEffectEvent keeps the listener stable while
+  // always seeing current state, so it is attached exactly once.
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    const el = e.target as HTMLElement | null;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+    // Some layouts/automation report Shift+/ as "/", so treat both as "?".
+    const help = e.key === "?" || (e.key === "/" && e.shiftKey);
+    if (showKeys && !help) return;
+    const k = e.key.toLowerCase();
+    const step = e.shiftKey ? -1 : 1;
+    const swap = (kind: Kind) => editable && busyLayer === null && project.layers[kind] && onSwap(kind, { step });
+    if (e.key === " ") {
+      e.preventDefault();
+      if (showRender) setView("preview");
+      clock.setPlaying(!clock.playing);
+    } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      if ((el as HTMLElement | null)?.getAttribute("role") === "slider") return; // the timeline handles its own
+      e.preventDefault();
+      clock.seek(clock.t + (e.key === "ArrowRight" ? 0.25 : -0.25));
+    } else if (k === "m") setMuted((m) => !m);
+    else if (k === "b") swap("background");
+    else if (k === "g") swap("gif");
+    else if (k === "a") swap("audio");
+    else if (k === "c" && editable) {
+      const i = CAPTION_STYLES.indexOf(project.captionStyle);
+      const nextStyle = CAPTION_STYLES[(i + 1) % CAPTION_STYLES.length];
+      onCaptionStyle(nextStyle);
+      toast(`Caption style: ${CAPTION_STYLE_META[nextStyle].label}`);
+    } else if (k === "r" && canRender) run("render");
+    else if (help) setShowKeys((v) => !v);
+  });
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => onKey(e);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
-    <main className="mx-auto max-w-[1440px] px-4 pt-5 pb-16 sm:px-6">
+    <main className="mx-auto max-w-[1440px] px-4 pt-5 pb-28 sm:px-6 lg:pb-16">
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1">
         <Link href="/library" className="font-mono text-[12px] text-ink-3 hover:text-ink">
           Library /
         </Link>
         <h1 className="font-serif text-[28px] leading-tight tracking-tight">{project.title || project.domain}</h1>
         <StatusPill project={project} phase={phase} />
+        <button
+          onClick={() => setShowKeys(true)}
+          className="ml-auto hidden items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[12px] text-ink-3 transition hover:border-ink-3 hover:text-ink md:inline-flex"
+        >
+          <kbd className="font-mono">?</kbd> Shortcuts
+        </button>
       </div>
+      <ShortcutsDialog open={showKeys} onClose={() => setShowKeys(false)} />
+
+      {/* Phones: the two actions you need at any scroll position, like a native editor. */}
+      {project.isOwner && prepared && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/90 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
+          <div className="mx-auto flex max-w-xl items-center gap-3">
+            <button
+              onClick={() => {
+                if (showRender) setView("preview");
+                clock.setPlaying(!clock.playing);
+              }}
+              aria-label={clock.playing ? "Pause preview" : "Play preview"}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-paper"
+            >
+              {clock.playing ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="ml-0.5 h-4 w-4" />}
+            </button>
+            <span className="font-mono text-[13px] tnum">{formatTime(clock.t)}</span>
+            {rendering ? (
+              <span className="ml-auto inline-flex h-11 items-center gap-2 rounded-full bg-ink/5 px-4 text-[14px] text-ink-2">
+                <Spinner /> {PHASE_STAGES.render.find((s) => stages[s.id]?.state === "active")?.label ?? "Rendering"}
+              </span>
+            ) : project.videoUrl && !project.stale ? (
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/v/${project.id}`;
+                  if (navigator.share) await navigator.share({ url, title: project.title ?? project.domain }).catch(() => {});
+                  else {
+                    await navigator.clipboard.writeText(url).catch(() => {});
+                    toast("Share link copied", "ok");
+                  }
+                }}
+                className="ml-auto inline-flex h-11 items-center gap-2 rounded-full border border-ink px-5 text-[15px] font-medium"
+              >
+                <LinkIcon className="h-4 w-4" /> Share
+              </button>
+            ) : (
+              <button
+                onClick={() => run("render")}
+                disabled={!canRender}
+                className="ml-auto inline-flex h-11 items-center gap-2 rounded-full bg-rec px-5 text-[15px] font-medium text-white disabled:opacity-40"
+              >
+                <span className="h-2 w-2 rounded-full bg-white" />
+                {project.videoUrl ? "Render again" : "Render video"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[290px_minmax(0,1fr)_360px]">
         {/* Center first in the DOM so it leads on mobile; the brief drops under it until there is room for three columns. */}
@@ -184,7 +299,7 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                   </div>
                 )}
 
-                <div className="w-[272px] sm:w-[312px]">
+                <div className="w-[228px] sm:w-[312px]">
                   {showRender ? (
                     <video
                       key={project.videoUrl}
@@ -201,6 +316,7 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                       gif={project.layers.gif}
                       audio={project.layers.audio}
                       caption={captionDraft}
+                      captionStyle={project.captionStyle}
                       t={clock.t}
                       playing={clock.playing}
                       muted={muted}
@@ -234,6 +350,11 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
               <Timeline
                 layers={project.layers}
                 caption={captionDraft}
+                busyLabel={
+                  rendering
+                    ? (PHASE_STAGES.render.find((s) => stages[s.id]?.state === "active")?.label ?? "Rendering")
+                    : null
+                }
                 t={clock.t}
                 onSeek={(t) => {
                   if (showRender) setView("preview");
@@ -252,7 +373,7 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                       ? phaseError
                       : null
                 }
-                disabled={!project.isOwner || preparing || busyLayer !== null}
+                disabled={!canRender}
                 onRender={() => run("render")}
               />
             </>
@@ -275,9 +396,11 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
               />
               <CaptionCard
                 caption={project.caption ?? ""}
+                captionStyle={project.captionStyle}
                 disabled={!editable}
                 onDraft={setCaptionDraft}
                 onSave={onSaveCaption}
+                onStyle={onCaptionStyle}
               />
               <LayerCard
                 kind="gif"
@@ -451,6 +574,7 @@ function RenderPanel({
                 <button
                   onClick={async () => {
                     await navigator.clipboard.writeText(`${window.location.origin}/v/${project.id}`).catch(() => {});
+                    toast("Share link copied", "ok");
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1500);
                   }}

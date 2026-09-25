@@ -8,10 +8,11 @@ const nextConfig: NextConfig = {
   // exist on disk (observed as a literal "\ROOT\..." ENOENT). Keeping them
   // external makes Node require() them from the real node_modules instead.
   serverExternalPackages: ["ffmpeg-static", "ffprobe-static"],
-  // The caption font is read from disk at render time; make sure the
-  // serverless bundle for the render route actually ships it.
+  // Fonts are read from disk when rendering captions and share cards; make
+  // sure those serverless bundles actually ship them.
   outputFileTracingIncludes: {
     "/api/projects/[id]/render": ["./assets/fonts/**"],
+    "/v/[id]/opengraph-image": ["./assets/fonts/**"],
   },
 };
 

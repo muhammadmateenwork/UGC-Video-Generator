@@ -23,6 +23,7 @@ export async function generateMetadata(props: PageProps<"/v/[id]">): Promise<Met
     title,
     description: `A 7-second UGC ad for ${p.title || p.domain}, cut with Cutroom.`,
     openGraph: { title, type: "video.other", videos: p.videoUrl ? [{ url: p.videoUrl }] : undefined },
+    twitter: { card: "summary_large_image", title },
   };
 }
 

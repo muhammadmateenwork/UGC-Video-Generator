@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Instrument_Serif, Inter } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
 // Three voices, each with one job: Instrument Serif for editorial
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh font-sans text-ink">
         <SiteHeader />
         {children}
+        <Toaster />
       </body>
     </html>
   );

@@ -16,6 +16,14 @@ The first version of this project was a ChatGPT-style chat clone, as the origina
 - **Three typefaces, three jobs.** Instrument Serif for editorial headlines, Geist for the interface, Geist Mono for anything measured: timecodes, stage timings, the activity log.
 - **Nothing is a black box.** The AI's plan is shown as a sentence ("the relief of never guessing calories again"). A badge says whether Gemini planned it or the fallback plan was used. Every stage is logged with its real duration, and every asset is credited to its creator.
 
+### Details that make it feel like a tool
+
+- **Four caption styles** (Boxed, Outline, TikTok pills, Pop). Each one is defined once in `captionCss()`, and that definition is used by the MP4 renderer (Satori), the live preview and the style picker's swatches. The swatches are the real style scaled down, not pictures of it.
+- **Keyboard-first editing.** Space plays, ←/→ scrub, B/G/A step through the background, GIF and audio results (Shift goes back), C cycles caption styles, R renders, and ? shows the list.
+- **Rendering shows on the timeline itself.** A sweep runs across the tracks with the current stage named. Toasts confirm finished renders, copied links and errors.
+- **Share links unfurl properly.** Every `/v/[id]` gets its own 1200×630 card, generated from the video's own frame, its caption in its chosen style, the product name and the AI's angle.
+- **Phones get a native-editor layout.** A sticky bottom bar keeps Play and Render (or Share) within reach at any scroll position, and uses the system share sheet where there is one.
+
 ## Architecture
 
 ```
@@ -47,7 +55,7 @@ Sourcing only resolves URLs and metadata; nothing is downloaded until render tim
 | `GET` | `/api/projects` | Your library |
 | `POST` | `/api/projects` `{url}` | Create a draft (accepts a URL, a bare domain, or a sentence containing one) |
 | `GET` | `/api/projects/:id` | Project, its layers and activity |
-| `PATCH` | `/api/projects/:id` `{caption}` | Edit the caption |
+| `PATCH` | `/api/projects/:id` `{caption?, captionStyle?}` | Edit the caption text or style |
 | `DELETE` | `/api/projects/:id` | Delete (layers and events cascade) |
 | `POST` | `/api/projects/:id/prepare` | Scrape, plan and source, streamed as NDJSON |
 | `POST` | `/api/projects/:id/layers/:kind` `{query?, step?}` | Swap one layer: next or previous result, or a new search |
@@ -80,7 +88,7 @@ On Vercel, add Neon from **Storage** (it sets `DATABASE_URL`) and Blob (it sets 
 
 - **Rendering runs inside the request** (up to 60s on Vercel Hobby). A real product would put renders on a queue with a worker. The status column and the takeover-a-stale-lock logic are already shaped for that.
 - **Identity is anonymous, per browser.** Signing in (for example with Clerk) would make the library follow you across devices. `owner_id` is already the only thing that would change.
-- **One caption style.** A style picker would live in `composition.ts` and be read by both the preview and `captionImage.tsx`.
+- **Local dev shares the production database** unless you point `DATABASE_URL` at a Neon dev branch, which I'd do for a team.
 
 ## How this was built
 

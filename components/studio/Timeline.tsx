@@ -26,11 +26,14 @@ function bars(seed: string, n = 56) {
 export function Timeline({
   layers,
   caption,
+  busyLabel,
   t,
   onSeek,
 }: {
   layers: Partial<Record<"background" | "gif" | "audio", LayerDTO>>;
   caption: string;
+  /** While rendering: the current stage, drawn as a sweep across the tracks. */
+  busyLabel?: string | null;
   t: number;
   onSeek: (t: number) => void;
 }) {
@@ -106,6 +109,14 @@ export function Timeline({
             )}
           </div>
         ))}
+        {busyLabel && (
+          <div className="pointer-events-none absolute inset-x-0 top-6 bottom-0 overflow-hidden rounded-md">
+            <div className="absolute inset-0 animate-sweep bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--rec)_22%,transparent),transparent)] bg-[length:40%_100%] bg-no-repeat" />
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink px-3 py-1 font-mono text-[11px] whitespace-nowrap text-paper">
+              {busyLabel}…
+            </span>
+          </div>
+        )}
         <div className="pointer-events-none absolute top-4 bottom-0 w-px bg-rec" style={{ left: pct(t) }}>
           <div className="absolute -top-1 -left-[5px] h-2.5 w-[11px] rounded-[3px] bg-rec" />
         </div>

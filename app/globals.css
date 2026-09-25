@@ -52,6 +52,16 @@
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-blink: blink 1.1s steps(2, start) infinite;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-sweep: sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
 }
 
 @keyframes rise {
