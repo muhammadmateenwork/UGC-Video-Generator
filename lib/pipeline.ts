@@ -6,7 +6,29 @@ import { AUDIO_MAX_BYTES, fetchBuffer, sourceLayer, type LayerCandidate } from "
 import { assembleUgcClip } from "./assemble";
 import { storeVideo } from "./storage";
 import { STALE_LOCK_MS, toProjectDTO, type ProjectDTO } from "./dto";
-import { CAPTION_STYLE_META, isCaptionStyle, type CaptionStyle } from "./composition";
+import {
+  CAPTION_STYLE_META,
+  isCaptionStyle,
+  normalizeLayout,
+  type CaptionStyle,
+  type Layout,
+} from "./composition";
+
+/** A one-line, human summary of a layout for the activity log. */
+function describeLayout(l: Layout) {
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const secs = (v: number) => `${(v * 7).toFixed(1)}s`;
+  const parts = [
+    l.caption.enabled
+      ? `caption at ${pct(l.caption.x)},${pct(l.caption.y)} ×${l.caption.scale.toFixed(2)} ${secs(l.caption.start)}–${secs(l.caption.end)}`
+      : "caption off",
+    l.gif.enabled
+      ? `GIF ${l.gif.width}px at ${pct(l.gif.x)},${pct(l.gif.y)} ${secs(l.gif.start)}–${secs(l.gif.end)}`
+      : "GIF off",
+    l.audio.enabled ? `audio ${pct(l.audio.volume)}` : "audio off",
+  ];
+  return `layout: ${parts.join(" · ")}`;
+}
 
 export const LAYER_KINDS: LayerKind[] = ["background", "gif", "audio"];
 
@@ -245,19 +267,21 @@ export async function shuffleLayer(
   );
 }
 
-export async function updateCaption(
+export async function updateProject(
   id: string,
   ownerId: string,
-  patch: { caption?: string; captionStyle?: CaptionStyle }
+  patch: { caption?: string; captionStyle?: CaptionStyle; layout?: unknown }
 ): Promise<void> {
+  const layout = patch.layout === undefined ? undefined : normalizeLayout(patch.layout);
   const [row] = await db()
     .update(projects)
-    .set(patch)
+    .set({ ...patch, layout: layout as Record<string, unknown> | undefined })
     .where(and(eq(projects.id, id), eq(projects.ownerId, ownerId)))
     .returning({ id: projects.id });
   if (!row) throw new PipelineError("Project not found", 404);
   if (patch.caption !== undefined) await logEvent(id, "edit", `caption: "${patch.caption}"`);
   if (patch.captionStyle) await logEvent(id, "edit", `caption style: ${CAPTION_STYLE_META[patch.captionStyle].label}`);
+  if (layout) await logEvent(id, "edit", describeLayout(layout));
 }
 
 /** download → render → upload. Always leaves the project re-renderable. */
@@ -265,8 +289,11 @@ export async function renderProject(id: string, ownerId: string, emit: Emit): Pr
   const project = await acquire(id, ownerId, "rendering", ["ready", "rendered", "failed"]);
   const started = Date.now();
   try {
+    const layout = normalizeLayout(project.layout);
     const selected = await db().select().from(layers).where(eq(layers.projectId, id));
-    const byKind = Object.fromEntries(selected.map((l) => [l.kind, l]));
+    // A layer switched off in the studio is neither downloaded nor rendered.
+    const enabled = { background: true, gif: layout.gif.enabled, audio: layout.audio.enabled };
+    const byKind = Object.fromEntries(selected.filter((l) => enabled[l.kind]).map((l) => [l.kind, l]));
 
     const media = await stage(id, "download", emit, async () => {
       const [bg, gif, audio] = await Promise.all(
@@ -307,8 +334,9 @@ export async function renderProject(id: string, ownerId: string, emit: Emit): Pr
           media.bg && bgLayer ? { type: bgLayer.mediaType === "video" ? "video" : "image", buffer: media.bg } : null,
         gifBuffer: media.gif,
         audioBuffer: media.audio,
-        caption: project.caption ?? "",
+        caption: layout.caption.enabled ? (project.caption ?? "") : "",
         captionStyle: isCaptionStyle(project.captionStyle) ? project.captionStyle : "box",
+        layout,
       });
       return { value: buffer, message: `Encoded 7s 720×1280 H.264 (${(buffer.length / 1e6).toFixed(1)} MB)` };
     });

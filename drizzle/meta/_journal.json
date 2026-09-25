@@ -15,6 +15,13 @@
       "when": 1790352955585,
       "tag": "0001_soft_the_enforcers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790353998534,
+      "tag": "0002_sad_pride",
+      "breakpoints": true
     }
   ]
 }

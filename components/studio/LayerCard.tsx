@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { LayerDTO } from "@/lib/dto";
 import { TRACKS } from "@/lib/layerMeta";
+import { Switch } from "./controls";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -22,6 +23,9 @@ export function LayerCard({
   disabled,
   error,
   onSwap,
+  enabled,
+  onToggle,
+  children,
 }: {
   kind: Kind;
   layer?: LayerDTO;
@@ -29,7 +33,13 @@ export function LayerCard({
   disabled: boolean;
   error?: string | null;
   onSwap: (opts: { query?: string; step?: 1 | -1 }) => void;
+  /** Omitted for layers that can't be switched off (the background). */
+  enabled?: boolean;
+  onToggle?: (enabled: boolean) => void;
+  /** Layer-specific controls (size, volume) shown under the preview. */
+  children?: React.ReactNode;
 }) {
+  const off = enabled === false;
   const meta = TRACKS[kind];
   const [query, setQuery] = useState(layer?.query ?? "");
   const [syncedQuery, setSyncedQuery] = useState(layer?.query);
@@ -74,7 +84,13 @@ export function LayerCard({
             </button>
           </div>
         )}
+        {onToggle && (
+          <span className={layer ? "ml-1" : "ml-auto"}>
+            <Switch label={meta.label} checked={!off} disabled={disabled} color={meta.color} onChange={onToggle} />
+          </span>
+        )}
       </header>
+      <div className={off ? "pointer-events-none opacity-40" : ""}>
 
       <div className="px-4 pt-3">
         {layer ? (
@@ -98,6 +114,8 @@ export function LayerCard({
           </a>
         )}
       </div>
+
+      {children && <div className="space-y-2 px-4 pt-3">{children}</div>}
 
       <form
         className="flex items-center gap-2 px-4 pt-2 pb-4"
@@ -125,6 +143,7 @@ export function LayerCard({
           Search
         </button>
       </form>
+      </div>
 
       {error && (
         <p role="alert" className="-mt-2 px-4 pb-3 text-[12px] text-rec">

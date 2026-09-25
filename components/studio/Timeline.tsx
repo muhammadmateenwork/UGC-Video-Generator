@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { COMPOSITION } from "@/lib/composition";
+import { COMPOSITION, normalizeLayout, type Layout } from "@/lib/composition";
 import { TRACKS, TRACK_ORDER, type TrackId } from "@/lib/layerMeta";
 import type { LayerDTO } from "@/lib/dto";
 
-const { duration: D, fade: FADE, gif: G } = COMPOSITION;
+const { duration: D, fade: FADE } = COMPOSITION;
 const pct = (s: number) => `${(s / D) * 100}%`;
 
 /** Deterministic pseudo-waveform so the audio clip reads as audio, stable across renders. */
@@ -20,18 +20,25 @@ function bars(seed: string, n = 56) {
 
 /**
  * The clip's actual edit decision list, drawn: when each layer is on screen
- * and where the fades sit — the GIF window and fade lengths come straight
- * from the same spec ffmpeg renders with. Click or drag anywhere to scrub.
+ * and where the fades sit, straight from the same Layout ffmpeg renders
+ * with. Click or drag an empty lane to scrub; when editable, drag a
+ * caption/GIF clip to move it in time, or its edges to trim it.
  */
 export function Timeline({
   layers,
   caption,
+  layout,
+  editable = false,
+  onLayout,
   busyLabel,
   t,
   onSeek,
 }: {
   layers: Partial<Record<"background" | "gif" | "audio", LayerDTO>>;
   caption: string;
+  layout: Layout;
+  editable?: boolean;
+  onLayout?: (next: Layout, commit: boolean) => void;
   /** While rendering: the current stage, drawn as a sweep across the tracks. */
   busyLabel?: string | null;
   t: number;
@@ -46,12 +53,49 @@ export function Timeline({
     onSeek(((clientX - r.left) / r.width) * D);
   };
 
-  const clip: Record<TrackId, { start: number; end: number; present: boolean }> = {
-    background: { start: 0, end: D, present: !!layers.background },
-    caption: { start: 0, end: D, present: !!caption.trim() },
-    gif: { start: D * G.start, end: D * G.end, present: !!layers.gif },
-    audio: { start: 0, end: D, present: !!layers.audio },
+  const clip: Record<TrackId, { start: number; end: number; present: boolean; off: boolean }> = {
+    background: { start: 0, end: D, present: !!layers.background, off: false },
+    caption: {
+      start: D * layout.caption.start,
+      end: D * layout.caption.end,
+      present: !!caption.trim(),
+      off: !layout.caption.enabled,
+    },
+    gif: { start: D * layout.gif.start, end: D * layout.gif.end, present: !!layers.gif, off: !layout.gif.enabled },
+    audio: { start: 0, end: D, present: !!layers.audio, off: !layout.audio.enabled },
   };
+
+  /** Drag a clip's body (move) or an edge (trim). Works in fractions of the clip, clamped by normalizeLayout. */
+  function dragWindow(e: React.PointerEvent, id: "caption" | "gif", mode: "move" | "start" | "end") {
+    if (!editable || !onLayout || !laneRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const width = laneRef.current.getBoundingClientRect().width;
+    const x0 = e.clientX;
+    const start = layout;
+    const w0 = start[id];
+    let latest = start;
+    const move = (ev: PointerEvent) => {
+      const d = (ev.clientX - x0) / width;
+      let s = w0.start;
+      let en = w0.end;
+      if (mode === "move") {
+        const len = w0.end - w0.start;
+        s = Math.min(Math.max(0, w0.start + d), 1 - len);
+        en = s + len;
+      } else if (mode === "start") s = Math.min(w0.start + d, w0.end);
+      else en = Math.max(w0.end + d, w0.start);
+      latest = normalizeLayout({ ...start, [id]: { ...w0, start: s, end: en } });
+      onLayout(latest, false);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (latest !== start) onLayout(latest, true);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
 
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-card p-3 select-none">
@@ -102,8 +146,16 @@ export function Timeline({
         </div>
         {TRACK_ORDER.map((id) => (
           <div key={id} className="relative my-1 h-8 rounded-md bg-paper-2/70">
-            {clip[id].present ? (
-              <Clip id={id} {...clip[id]} layers={layers} caption={caption} />
+            {clip[id].off ? (
+              <span className="absolute inset-0 grid place-items-center font-mono text-[10px] text-ink-3">off</span>
+            ) : clip[id].present ? (
+              <Clip
+                id={id}
+                {...clip[id]}
+                layers={layers}
+                caption={caption}
+                onDrag={editable && (id === "caption" || id === "gif") ? (e, mode) => dragWindow(e, id, mode) : undefined}
+              />
             ) : (
               <span className="absolute inset-0 grid place-items-center font-mono text-[10px] text-ink-3">empty</span>
             )}
@@ -131,12 +183,14 @@ function Clip({
   end,
   layers,
   caption,
+  onDrag,
 }: {
   id: TrackId;
   start: number;
   end: number;
   layers: Partial<Record<"background" | "gif" | "audio", LayerDTO>>;
   caption: string;
+  onDrag?: (e: React.PointerEvent, mode: "move" | "start" | "end") => void;
 }) {
   const color = TRACKS[id].color;
   const fades = id === "background" || id === "audio";
@@ -144,7 +198,9 @@ function Clip({
 
   return (
     <div
-      className="absolute inset-y-0 overflow-hidden rounded-md border"
+      onPointerDown={onDrag ? (e) => onDrag(e, "move") : undefined}
+      title={onDrag ? `${(start).toFixed(1)}s – ${(end).toFixed(1)}s · drag to move, edges to trim` : undefined}
+      className={`group absolute inset-y-0 overflow-hidden rounded-md border ${onDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
       style={{
         left: pct(start),
         width: pct(end - start),
@@ -169,6 +225,20 @@ function Clip({
             <span key={i} className="flex-1 rounded-full" style={{ height: `${h * 100}%`, background: color, opacity: 0.8 }} />
           ))}
         </div>
+      )}
+      {onDrag && (
+        <>
+          <span
+            onPointerDown={(e) => onDrag(e, "start")}
+            className="absolute inset-y-0 left-0 w-2 cursor-ew-resize opacity-60 group-hover:opacity-100"
+            style={{ background: color }}
+          />
+          <span
+            onPointerDown={(e) => onDrag(e, "end")}
+            className="absolute inset-y-0 right-0 w-2 cursor-ew-resize opacity-60 group-hover:opacity-100"
+            style={{ background: color }}
+          />
+        </>
       )}
       {fades && (
         <>

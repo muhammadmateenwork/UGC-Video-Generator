@@ -6,7 +6,14 @@ import { COMPOSITION } from "@/lib/composition";
 import { STALE_LOCK_MS, type ProjectDTO } from "@/lib/dto";
 import type { Stage } from "@/lib/pipeline";
 import { patchProject, runPipeline, swapLayer } from "@/lib/client";
-import { CAPTION_STYLES, CAPTION_STYLE_META, type CaptionStyle } from "@/lib/composition";
+import {
+  CAPTION_STYLES,
+  CAPTION_STYLE_META,
+  LAYOUT_LIMITS,
+  type CaptionStyle,
+  type Layout,
+} from "@/lib/composition";
+import { Slider } from "./controls";
 import { toast } from "../Toaster";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { BriefPanel } from "./BriefPanel";
@@ -54,6 +61,10 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
   const [busyLayer, setBusyLayer] = useState<Kind | null>(null);
   const [layerErrors, setLayerErrors] = useState<Partial<Record<Kind, string>>>({});
   const [captionDraft, setCaptionDraft] = useState(initial.caption ?? "");
+  // The layout being edited: updated on every drag/slider tick for a live
+  // preview, saved once per finished gesture (see changeLayout).
+  const [layout, setLayout] = useState<Layout>(initial.layout);
+  const layoutRef = useRef(initial.layout);
   const [view, setView] = useState<"preview" | "render">(
     initial.videoUrl && !initial.stale ? "render" : "preview"
   );
@@ -87,6 +98,8 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
         } else if (e.type === "project") {
           setProject(e.project);
           setCaptionDraft(e.project.caption ?? "");
+          setLayout(e.project.layout);
+          layoutRef.current = e.project.layout;
         } else if (e.type === "error") {
           failed = true;
           setPhaseError(e.message);
@@ -123,6 +136,8 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
       const { project: fresh } = (await res.json()) as { project: ProjectDTO };
       setProject(fresh);
       setCaptionDraft(fresh.caption ?? "");
+      setLayout(fresh.layout);
+      layoutRef.current = fresh.layout;
     }, 2000);
     return () => clearInterval(timer);
   }, [phase, project.status, project.id]);
@@ -145,6 +160,24 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
   async function onSaveCaption(value: string) {
     setProject(await patchProject(project.id, { caption: value }));
   }
+
+  /** Live update always; persist only when a gesture finishes (`commit`). */
+  async function changeLayout(next: Layout, commit: boolean) {
+    layoutRef.current = next;
+    setLayout(next);
+    if (!commit) return;
+    setView("preview");
+    try {
+      const saved = await patchProject(project.id, { layout: next });
+      setProject(saved);
+    } catch (err) {
+      setLayout(project.layout);
+      layoutRef.current = project.layout;
+      toast(err instanceof Error ? err.message : "Couldn't save that change", "error");
+    }
+  }
+  const changePart = <K extends keyof Layout>(key: K, part: Layout[K], commit: boolean) =>
+    changeLayout({ ...layoutRef.current, [key]: part }, commit);
 
   async function onCaptionStyle(style: CaptionStyle) {
     if (style === project.captionStyle) return;
@@ -317,6 +350,9 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                       audio={project.layers.audio}
                       caption={captionDraft}
                       captionStyle={project.captionStyle}
+                      layout={layout}
+                      editable={editable}
+                      onLayout={changeLayout}
                       t={clock.t}
                       playing={clock.playing}
                       muted={muted}
@@ -350,6 +386,9 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
               <Timeline
                 layers={project.layers}
                 caption={captionDraft}
+                layout={layout}
+                editable={editable}
+                onLayout={changeLayout}
                 busyLabel={
                   rendering
                     ? (PHASE_STAGES.render.find((s) => stages[s.id]?.state === "active")?.label ?? "Rendering")
@@ -397,6 +436,8 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
               <CaptionCard
                 caption={project.caption ?? ""}
                 captionStyle={project.captionStyle}
+                layout={layout.caption}
+                onLayout={(part, commit) => changePart("caption", part, commit)}
                 disabled={!editable}
                 onDraft={setCaptionDraft}
                 onSave={onSaveCaption}
@@ -409,7 +450,22 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                 disabled={!editable || (busyLayer !== null && busyLayer !== "gif")}
                 error={layerErrors.gif}
                 onSwap={(o) => onSwap("gif", o)}
-              />
+                enabled={layout.gif.enabled}
+                onToggle={(enabled) => changePart("gif", { ...layout.gif, enabled }, true)}
+              >
+                <Slider
+                  label="Size"
+                  value={layout.gif.width}
+                  min={LAYOUT_LIMITS.gifWidth[0]}
+                  max={LAYOUT_LIMITS.gifWidth[1]}
+                  step={10}
+                  format={(v) => `${Math.round((v / 720) * 100)}%`}
+                  disabled={!editable}
+                  color="var(--l-gif)"
+                  onChange={(width) => changePart("gif", { ...layoutRef.current.gif, width }, false)}
+                  onCommit={() => changeLayout(layoutRef.current, true)}
+                />
+              </LayerCard>
               <LayerCard
                 kind="audio"
                 layer={project.layers.audio}
@@ -417,7 +473,22 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
                 disabled={!editable || (busyLayer !== null && busyLayer !== "audio")}
                 error={layerErrors.audio}
                 onSwap={(o) => onSwap("audio", o)}
-              />
+                enabled={layout.audio.enabled}
+                onToggle={(enabled) => changePart("audio", { ...layout.audio, enabled }, true)}
+              >
+                <Slider
+                  label="Volume"
+                  value={layout.audio.volume}
+                  min={LAYOUT_LIMITS.volume[0]}
+                  max={LAYOUT_LIMITS.volume[1]}
+                  step={0.05}
+                  format={(v) => `${Math.round(v * 100)}%`}
+                  disabled={!editable}
+                  color="var(--l-audio)"
+                  onChange={(volume) => changePart("audio", { ...layoutRef.current.audio, volume }, false)}
+                  onCommit={() => changeLayout(layoutRef.current, true)}
+                />
+              </LayerCard>
             </>
           )}
         </aside>

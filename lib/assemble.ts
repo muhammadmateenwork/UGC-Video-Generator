@@ -5,15 +5,11 @@ import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import { renderCaptionImage } from "./captionImage";
-import { COMPOSITION, type CaptionStyle } from "./composition";
+import { COMPOSITION, DEFAULT_LAYOUT, type CaptionStyle, type Layout } from "./composition";
 
 const run = promisify(execFile);
 
 const { fps: FPS, width: WIDTH, height: HEIGHT, duration: CLIP_DURATION, fade: FADE_SECONDS } = COMPOSITION;
-// Sized and corner-anchored, not centered: a full-width centered GIF used
-// to sit directly on top of the background's main subject instead of
-// reading as a reaction accent. Same spec the studio preview draws from.
-const GIF = COMPOSITION.gif;
 // Ink colour from the app's own palette, used as a fallback background
 // if no stock asset could be sourced at all — never leaves the user with a
 // failed render just because Pexels had nothing for an unusual query.
@@ -26,6 +22,8 @@ export interface UgcClipInput {
   audioBuffer: Buffer | null;
   caption: string;
   captionStyle?: CaptionStyle;
+  /** Where/when/how big each layer is. Omitted means the original fixed composition. */
+  layout?: Layout;
   durationSeconds?: number;
 }
 
@@ -51,7 +49,13 @@ export interface UgcClipInput {
 export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
   if (!ffmpegPath) throw new Error("ffmpeg-static binary not found");
   const duration = input.durationSeconds ?? CLIP_DURATION;
-  const caption = input.caption?.trim() || "";
+  const layout = input.layout ?? DEFAULT_LAYOUT;
+  const caption = layout.caption.enabled ? input.caption?.trim() || "" : "";
+  const gifBuffer = layout.gif.enabled ? input.gifBuffer : null;
+  const audioBuffer = layout.audio.enabled ? input.audioBuffer : null;
+  const between = (w: { start: number; end: number }) =>
+    // ffmpeg needs the commas inside the expression escaped as "\,".
+    `enable='between(t\\,${(w.start * duration).toFixed(2)}\\,${(w.end * duration).toFixed(2)})'`;
 
   const jobDir = await fs.mkdtemp(path.join(os.tmpdir(), "ugc-"));
   try {
@@ -81,7 +85,7 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
     // --- Input (optional): pre-rendered caption PNG ---
     let captionInputIndex: number | null = null;
     if (caption) {
-      const captionBuffer = await renderCaptionImage(caption, input.captionStyle);
+      const captionBuffer = await renderCaptionImage(caption, input.captionStyle, layout.caption);
       const captionPath = path.join(jobDir, "caption.png");
       await fs.writeFile(captionPath, captionBuffer);
       captionInputIndex = nextInputIndex++;
@@ -90,18 +94,18 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
 
     // --- Input (optional): GIF overlay ---
     let gifInputIndex: number | null = null;
-    if (input.gifBuffer) {
+    if (gifBuffer) {
       const gifPath = path.join(jobDir, "overlay.gif");
-      await fs.writeFile(gifPath, input.gifBuffer);
+      await fs.writeFile(gifPath, gifBuffer);
       gifInputIndex = nextInputIndex++;
       args.push("-stream_loop", "-1", "-i", gifPath);
     }
 
     // --- Next input: trending audio, or a silent track so output audio is consistent ---
     const audioInputIndex = nextInputIndex++;
-    if (input.audioBuffer) {
+    if (audioBuffer) {
       const audioPath = path.join(jobDir, "audio.mp3");
-      await fs.writeFile(audioPath, input.audioBuffer);
+      await fs.writeFile(audioPath, audioBuffer);
       args.push("-stream_loop", "-1", "-i", audioPath);
     } else {
       args.push("-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
@@ -116,20 +120,18 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
 
     if (captionInputIndex !== null) {
       filters.push(
-        `[${pad}][${captionInputIndex}:v]overlay=x=0:y=${COMPOSITION.caption.y}:format=auto[cap]`
+        `[${pad}][${captionInputIndex}:v]overlay=x=0:y=0:format=auto:${between(layout.caption)}[cap]`
       );
       pad = "cap";
     }
 
     if (gifInputIndex !== null) {
-      const gifStart = duration * GIF.start;
-      const gifEnd = duration * GIF.end;
-      filters.push(`[${gifInputIndex}:v]scale=${GIF.width}:-1[gifscaled]`);
-      // Bottom-right corner, not dead center — leaves the background's main
-      // subject fully visible instead of the GIF sitting on top of it.
+      const g = layout.gif;
+      filters.push(`[${gifInputIndex}:v]scale=${g.width}:-2[gifscaled]`);
+      // Centred on layout.x, top edge at layout.y — the defaults reproduce
+      // the original bottom-right placement that keeps the main subject clear.
       filters.push(
-        `[${pad}][gifscaled]overlay=x=W-w-${GIF.right}:y=H*${GIF.top}:format=auto:` +
-          `enable='between(t\\,${gifStart.toFixed(2)}\\,${gifEnd.toFixed(2)})'[withgif]`
+        `[${pad}][gifscaled]overlay=x=${Math.round(g.x * WIDTH)}-w/2:y=${Math.round(g.y * HEIGHT)}:format=auto:${between(g)}[withgif]`
       );
       pad = "withgif";
     }
@@ -148,7 +150,7 @@ export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
     filters.push(`[${pad}]null[vout]`);
 
     const audioFilter =
-      `[${audioInputIndex}:a]afade=t=in:st=0:d=${FADE_SECONDS},` +
+      `[${audioInputIndex}:a]volume=${layout.audio.volume.toFixed(2)},afade=t=in:st=0:d=${FADE_SECONDS},` +
       `afade=t=out:st=${(duration - FADE_SECONDS).toFixed(2)}:d=${FADE_SECONDS}[aout]`;
     filters.push(audioFilter);
 

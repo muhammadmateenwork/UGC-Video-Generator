@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CAPTION_STYLES } from "@/lib/composition";
 import { getOwnerId } from "@/lib/owner";
-import { deleteProject, loadProject, updateCaption } from "@/lib/pipeline";
+import { deleteProject, loadProject, updateProject } from "@/lib/pipeline";
 import { handleError, jsonError, uuidSchema } from "@/lib/http";
 
 /** GET /api/projects/:id — full project with layers and activity log. */
@@ -20,16 +20,18 @@ const patchBody = z
   .object({
     caption: z.string().trim().min(1, "Caption can't be empty").max(60, "Keep the caption under 60 characters").optional(),
     captionStyle: z.enum(CAPTION_STYLES).optional(),
+    /** Normalised (clamped, defaults filled) server-side by normalizeLayout — any partial shape is accepted. */
+    layout: z.record(z.string(), z.unknown()).optional(),
   })
-  .refine((b) => b.caption !== undefined || b.captionStyle !== undefined, "Nothing to update");
+  .refine((b) => b.caption !== undefined || b.captionStyle !== undefined || b.layout !== undefined, "Nothing to update");
 
-/** PATCH /api/projects/:id { caption?, captionStyle? } */
+/** PATCH /api/projects/:id { caption?, captionStyle?, layout? } */
 export async function PATCH(req: Request, ctx: RouteContext<"/api/projects/[id]">) {
   try {
     const id = uuidSchema.parse((await ctx.params).id);
     const ownerId = await getOwnerId();
     if (!ownerId) return jsonError("Not your project", 403);
-    await updateCaption(id, ownerId, patchBody.parse(await req.json().catch(() => ({}))));
+    await updateProject(id, ownerId, patchBody.parse(await req.json().catch(() => ({}))));
     return Response.json({ project: await loadProject(id, ownerId) });
   } catch (err) {
     return handleError(err);

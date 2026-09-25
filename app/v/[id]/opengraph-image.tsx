@@ -23,11 +23,11 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const [inter, serif] = await Promise.all([loadFont("interExtraBold"), loadFont("instrumentSerif")]);
 
   const title = project?.title || project?.domain || "Cutroom";
-  const caption = project?.caption ?? "";
+  const caption = project?.layout.caption.enabled ? (project.caption ?? "") : "";
   const thumb = project?.layers.background?.thumbUrl ?? null;
   // The phone frame is 300px wide; the render is 720px wide.
   const scale = 300 / 720;
-  const css = captionCss(project?.captionStyle ?? "box", (px) => `${(px * scale).toFixed(2)}px`);
+  const css = captionCss(project?.captionStyle ?? "box", (px) => `${(px * scale).toFixed(2)}px`, project?.layout.caption);
 
   return new ImageResponse(
     (

@@ -2,12 +2,18 @@
 
 import { useRef, useState } from "react";
 import {
+  ACCENT_LABEL,
+  CAPTION_COLORS,
   CAPTION_STYLES,
   CAPTION_STYLE_META,
+  DEFAULT_LAYOUT,
+  LAYOUT_LIMITS,
   captionCss,
   wrapCaptionLines,
   type CaptionStyle,
+  type Layout,
 } from "@/lib/composition";
+import { ColorSwatches, Slider, Switch } from "./controls";
 import { TRACKS } from "@/lib/layerMeta";
 import { CheckIcon, Spinner } from "../icons";
 
@@ -20,13 +26,18 @@ const MAX = 60;
 export function CaptionCard({
   caption,
   captionStyle,
+  layout,
   disabled,
   onDraft,
   onSave,
   onStyle,
+  onLayout,
 }: {
   caption: string;
   captionStyle: CaptionStyle;
+  layout: Layout["caption"];
+  /** `commit` false = live preview only; true = save. */
+  onLayout: (next: Layout["caption"], commit: boolean) => void;
   disabled: boolean;
   onDraft: (value: string) => void;
   onSave: (value: string) => Promise<void>;
@@ -77,7 +88,9 @@ export function CaptionCard({
     >
       <header className="flex items-center gap-2">
         <h3 className="text-[14px] font-semibold">Caption</h3>
-        <span className="font-mono text-[11px] text-ink-3">on screen, 0–7s</span>
+        <span className="font-mono text-[11px] text-ink-3 tnum">
+          {layout.enabled ? `${(layout.start * 7).toFixed(1)}–${(layout.end * 7).toFixed(1)}s` : "off"}
+        </span>
         <span className="ml-auto flex h-5 items-center text-[12px] text-ink-3" aria-live="polite">
           {state === "saving" && <Spinner className="h-3.5 w-3.5" />}
           {state === "saved" && (
@@ -86,7 +99,15 @@ export function CaptionCard({
             </span>
           )}
         </span>
+        <Switch
+          label="Caption"
+          checked={layout.enabled}
+          disabled={disabled}
+          color={TRACKS.caption.color}
+          onChange={(enabled) => onLayout({ ...layout, enabled }, true)}
+        />
       </header>
+      <div className={layout.enabled ? "" : "pointer-events-none opacity-40"}>
       <textarea
         value={draft}
         disabled={disabled}
@@ -120,6 +141,46 @@ export function CaptionCard({
         {CAPTION_STYLES.map((s) => (
           <StyleSwatch key={s} style={s} active={s === captionStyle} disabled={disabled} onPick={() => onStyle(s)} />
         ))}
+      </div>
+      <div className="mt-3.5 space-y-2.5 border-t border-line-2 pt-3">
+        <ColorSwatches
+          label="Text"
+          colors={CAPTION_COLORS}
+          value={layout.color}
+          disabled={disabled}
+          onChange={(color) => onLayout({ ...layout, color }, true)}
+        />
+        <ColorSwatches
+          label={ACCENT_LABEL[captionStyle]}
+          colors={CAPTION_COLORS}
+          value={layout.accent}
+          disabled={disabled}
+          onChange={(accent) => onLayout({ ...layout, accent }, true)}
+        />
+        <Slider
+          label="Size"
+          value={layout.scale}
+          min={LAYOUT_LIMITS.captionScale[0]}
+          max={LAYOUT_LIMITS.captionScale[1]}
+          step={0.05}
+          format={(v) => `${Math.round(v * 100)}%`}
+          disabled={disabled}
+          color={TRACKS.caption.color}
+          onChange={(scale) => onLayout({ ...layout, scale }, false)}
+          onCommit={() => onLayout(layout, true)}
+        />
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            const d = DEFAULT_LAYOUT.caption;
+            onLayout({ ...layout, x: d.x, y: d.y, scale: d.scale, start: d.start, end: d.end }, true);
+          }}
+          className="font-mono text-[11px] text-ink-3 underline decoration-line underline-offset-2 hover:text-ink disabled:opacity-40"
+        >
+          Reset position, size and timing
+        </button>
+      </div>
       </div>
       {error && (
         <p role="alert" className="mt-1 text-[12px] text-rec">

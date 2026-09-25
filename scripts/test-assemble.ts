@@ -16,6 +16,7 @@ import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
 import ffprobePath from "ffprobe-static";
 import { assembleUgcClip } from "../lib/assemble";
+import { normalizeLayout } from "../lib/composition";
 
 const run = promisify(execFile);
 
@@ -161,6 +162,54 @@ const cases: Case[] = [
       audioBuffer: f.audio,
       caption:
         "this is a deliberately long caption that must wrap onto exactly two lines and never overflow the frame",
+    }),
+  },
+  {
+    // Everything the studio lets you change, at once: a moved, recoloured,
+    // scaled caption with a short window, a big GIF on the left, and half
+    // volume — all through normalizeLayout, exactly as the API stores it.
+    name: "custom-layout_moved-scaled-recoloured-retimed",
+    build: (f) => ({
+      background: { type: "video", buffer: f.bgVideo },
+      gifBuffer: f.gif,
+      audioBuffer: f.audio,
+      caption: "custom layout test",
+      captionStyle: "pill",
+      layout: normalizeLayout({
+        caption: { x: 0.35, y: 0.78, scale: 1.6, color: "#ffffff", accent: "#ff5b24", start: 0.2, end: 0.6 },
+        gif: { x: 0.25, y: 0.1, width: 480, start: 0.5, end: 0.95 },
+        audio: { volume: 0.5 },
+      }),
+    }),
+  },
+  {
+    // Switched off in the studio: caption, GIF and audio must all be absent
+    // even though their assets were passed in.
+    name: "layers-switched-off_caption-gif-audio",
+    build: (f) => ({
+      background: { type: "video", buffer: f.bgVideo },
+      gifBuffer: f.gif,
+      audioBuffer: f.audio,
+      caption: "should not appear",
+      layout: normalizeLayout({ caption: { enabled: false }, gif: { enabled: false }, audio: { enabled: false } }),
+    }),
+    expectSilence: true,
+  },
+  {
+    // Out-of-range input is clamped, not rejected: a GIF wider than allowed,
+    // a caption dragged off-frame and an inverted window still render.
+    name: "layout-clamping_out-of-range-values",
+    build: (f) => ({
+      background: { type: "image", buffer: f.bgPhoto },
+      gifBuffer: f.gif,
+      audioBuffer: f.audio,
+      caption: "clamped",
+      captionStyle: "pop",
+      layout: normalizeLayout({
+        caption: { x: 5, y: -2, scale: 99, color: "not-a-colour", start: 0.9, end: 0.1 },
+        gif: { x: -1, width: 99999 },
+        audio: { volume: 42 },
+      }),
     }),
   },
 ];

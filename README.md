@@ -18,6 +18,7 @@ The first version of this project was a ChatGPT-style chat clone, as the origina
 
 ### Details that make it feel like a tool
 
+- **Arrange it like an editor.** Drag the caption or GIF on the preview to move it, with a centre guide that snaps. Drag the corner handle to resize. Drag a clip on the timeline to move it in time, or its edges to trim it. Caption, GIF and audio can each be switched off. The caption has text and accent colours and a size slider; the GIF has a size slider and the audio a volume slider. It all lives in one `layout` value per project. `normalizeLayout()` clamps it identically in the browser, the API and the renderer, and ffmpeg places, times and mixes every layer from it. `pnpm test:assemble` renders custom, switched-off and deliberately out-of-range layouts.
 - **Four caption styles** (Boxed, Outline, TikTok pills, Pop). Each one is defined once in `captionCss()`, and that definition is used by the MP4 renderer (Satori), the live preview and the style picker's swatches. The swatches are the real style scaled down, not pictures of it.
 - **Keyboard-first editing.** Space plays, ←/→ scrub, B/G/A step through the background, GIF and audio results (Shift goes back), C cycles caption styles, R renders, and ? shows the list.
 - **Rendering shows on the timeline itself.** A sweep runs across the tracks with the current stage named. Toasts confirm finished renders, copied links and errors.
@@ -44,7 +45,7 @@ Sourcing only resolves URLs and metadata; nothing is downloaded until render tim
 
 ### Data model ([`lib/db/schema.ts`](lib/db/schema.ts))
 
-- **`projects`**: the URL, what was scraped, the plan (caption, angle, whether Gemini or the fallback planned it), status, video URL, render time, and an anonymous `owner_id`.
+- **`projects`**: the URL, what was scraped, the layout (JSON), the plan (caption, angle, whether Gemini or the fallback planned it), status, video URL, render time, and an anonymous `owner_id`.
 - **`layers`**: the selected asset for each (project, kind): the search query, which result is in use (`candidate_index`), preview and render URLs, and credit. It has a unique index on `(project_id, kind)`.
 - **`events`**: an append-only activity log. Each stage writes one row with its measured duration.
 
@@ -55,7 +56,7 @@ Sourcing only resolves URLs and metadata; nothing is downloaded until render tim
 | `GET` | `/api/projects` | Your library |
 | `POST` | `/api/projects` `{url}` | Create a draft (accepts a URL, a bare domain, or a sentence containing one) |
 | `GET` | `/api/projects/:id` | Project, its layers and activity |
-| `PATCH` | `/api/projects/:id` `{caption?, captionStyle?}` | Edit the caption text or style |
+| `PATCH` | `/api/projects/:id` `{caption?, captionStyle?, layout?}` | Edit the caption, its style, or the layout (position, size, timing, colour, on/off, volume) |
 | `DELETE` | `/api/projects/:id` | Delete (layers and events cascade) |
 | `POST` | `/api/projects/:id/prepare` | Scrape, plan and source, streamed as NDJSON |
 | `POST` | `/api/projects/:id/layers/:kind` `{query?, step?}` | Swap one layer: next or previous result, or a new search |
