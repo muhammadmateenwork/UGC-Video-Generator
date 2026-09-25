@@ -1,106 +1,125 @@
-export function ArrowUpIcon(props: React.SVGProps<SVGSVGElement>) {
+type P = React.SVGProps<SVGSVGElement>;
+
+function Svg({ children, ...props }: P) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.2} stroke="currentColor" {...props}>
-      <path d="M12 19V5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 11l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      {children}
     </svg>
   );
 }
 
-export function SparkIcon(props: React.SVGProps<SVGSVGElement>) {
+/** Brand mark: a film frame with a cut through it. */
+export function MarkIcon(props: P) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
+    <svg viewBox="0 0 24 24" aria-hidden {...props}>
+      <rect x="5" y="2" width="14" height="20" rx="3" fill="currentColor" />
+      <path d="M3 15.5 21 8.5" stroke="var(--paper)" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="16" cy="5.5" r="1.4" fill="var(--rec)" />
     </svg>
   );
 }
 
-export function LinkIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <path
-        d="M9 15l6-6M10 6l.5-.5a3.54 3.54 0 015 5L15 11M14 18l-.5.5a3.54 3.54 0 01-5-5l.5-.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+export const ArrowRightIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Svg>
+);
+export const PlayIcon = (p: P) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...p}>
+    <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+  </svg>
+);
+export const PauseIcon = (p: P) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...p}>
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+  </svg>
+);
+export const VolumeIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+  </Svg>
+);
+export const MuteIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+    <path d="m16 9 6 6M22 9l-6 6" />
+  </Svg>
+);
+export const ChevronLeftIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m15 6-6 6 6 6" />
+  </Svg>
+);
+export const ChevronRightIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m9 6 6 6-6 6" />
+  </Svg>
+);
+export const SearchIcon = (p: P) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </Svg>
+);
+export const DownloadIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+  </Svg>
+);
+export const LinkIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3.3-3.3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0L5 13.3A4 4 0 0 0 10.7 19l1-1" />
+  </Svg>
+);
+export const ExternalIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </Svg>
+);
+export const TrashIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+  </Svg>
+);
+export const CheckIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Svg>
+);
+export const PlusIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+export const RetryIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5" />
+  </Svg>
+);
+export const AlertIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 8v5M12 16.5v.01" />
+    <path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+  </Svg>
+);
 
-export function LayersIcon(props: React.SVGProps<SVGSVGElement>) {
+export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <path d="M12 3l9 5-9 5-9-5 9-5z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3 13l9 5 9-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function WandIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <path d="M4 20L19 5M14.5 5.5l4 4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 3v3M4.5 4.5h3M18 14v3M16.5 15.5h3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.2} stroke="currentColor" {...props}>
-      <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function FilmIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M3 9h18M3 15h18M8 4v16M16 4v16" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function UploadIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <path d="M12 16V4M7 9l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3.5 2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function UnlockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" {...props}>
-      <rect x="4" y="11" width="16" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 017.5-1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function PlayIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M7 4.5v15l14-7.5-14-7.5z" />
-    </svg>
-  );
-}
-
-export function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" {...props}>
-      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" className={`animate-spin ${className}`} aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2.5" fill="none" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
