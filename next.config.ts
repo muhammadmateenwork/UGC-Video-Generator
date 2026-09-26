@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       "./assets/fonts/**",
       "./node_modules/.pnpm/ffmpeg-static@*/node_modules/ffmpeg-static/ffmpeg*",
     ],
+    "/api/health": ["./node_modules/.pnpm/ffmpeg-static@*/node_modules/ffmpeg-static/ffmpeg*"],
     "/v/[id]/opengraph-image": ["./assets/fonts/**"],
   },
 };
