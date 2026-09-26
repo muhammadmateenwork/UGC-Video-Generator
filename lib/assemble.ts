@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
@@ -48,6 +49,12 @@ export interface UgcClipInput {
  */
 export async function assembleUgcClip(input: UgcClipInput): Promise<Buffer> {
   if (!ffmpegPath) throw new Error("ffmpeg-static binary not found");
+  // ffmpeg-static downloads its binary in an install script, which pnpm 10
+  // skips unless allowed (see "onlyBuiltDependencies" in package.json).
+  // Without this check the failure surfaces as an opaque "spawn ENOENT".
+  if (!existsSync(ffmpegPath)) {
+    throw new Error(`ffmpeg binary is missing at ${ffmpegPath} — its install script didn't run on this server`);
+  }
   const duration = input.durationSeconds ?? CLIP_DURATION;
   const layout = input.layout ?? DEFAULT_LAYOUT;
   const caption = layout.caption.enabled ? input.caption?.trim() || "" : "";
