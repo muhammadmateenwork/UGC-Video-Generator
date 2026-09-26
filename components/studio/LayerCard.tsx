@@ -16,6 +16,13 @@ import {
 
 type Kind = "background" | "gif" | "audio";
 
+/** One-click searches for a layer that came back empty — the way out shouldn't require typing. */
+const QUICK_PICKS: Record<Kind, string[]> = {
+  background: ["lifestyle", "city street", "morning routine", "nature"],
+  gif: ["wow", "mind blown", "yes", "happy dance"],
+  audio: ["upbeat", "lofi", "chill", "energetic"],
+};
+
 export function LayerCard({
   kind,
   layer,
@@ -96,8 +103,21 @@ export function LayerCard({
         {layer ? (
           <Preview kind={kind} layer={layer} />
         ) : (
-          <div className="grid h-24 place-items-center rounded-xl border border-dashed border-line text-center text-[13px] text-ink-3">
-            No {meta.label.toLowerCase()} yet. Search for one below.
+          <div className="flex h-auto flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-line px-3 py-5 text-center">
+            <p className="text-[13px] text-ink-3">Nothing found for this one yet. Try a quick pick:</p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {QUICK_PICKS[kind].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => onSwap({ query: q })}
+                  className="rounded-full border border-line bg-paper px-2.5 py-1 text-[12px] transition hover:border-ink disabled:opacity-40"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {layer?.creditName && (

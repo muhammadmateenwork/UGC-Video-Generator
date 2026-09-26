@@ -55,6 +55,30 @@
   --animate-sweep: sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* The home page's exploded view: layers drift apart and settle back
+   together, so it reads as "four layers that make one video". A typed
+   custom property is what lets the spacing itself animate. */
+@property --spread {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 64px;
+}
+
+.anatomy {
+  animation: anatomy-breathe 7s cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+}
+
+@keyframes anatomy-breathe {
+  0%,
+  15% {
+    --spread: 72px;
+  }
+  85%,
+  100% {
+    --spread: 4px;
+  }
+}
+
 @keyframes sweep {
   from {
     background-position: -60% 0;

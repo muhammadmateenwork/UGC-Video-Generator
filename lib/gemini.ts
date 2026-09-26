@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type GenerationConfig } from "@google/generative-ai";
 
 // Tried in order. Observed directly while testing: Google returns 503 "high
 // demand" for one flash model while a neighbouring one answers fine, and it
@@ -100,7 +100,11 @@ async function withKeyRotationAndRetry<T>(
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (Date.now() >= deadline) break keyLoop;
       try {
-        return await withTimeout(call(key, model), PER_CALL_TIMEOUT_MS, "Gemini request");
+        // Never let one attempt run past the overall budget — measured: without
+        // this cap, an attempt started just before the deadline pushed a
+        // planning step to 35s under a Google overload.
+        const budget = Math.min(PER_CALL_TIMEOUT_MS, deadline - Date.now());
+        return await withTimeout(call(key, model), budget, "Gemini request");
       } catch (err) {
         lastError = err;
         const status = extractStatus(err);
@@ -123,12 +127,26 @@ async function withKeyRotationAndRetry<T>(
   );
 }
 
+/**
+ * Picking a caption and four search terms doesn't need deep reasoning.
+ * Measured on gemini-3.6-flash with the real planning prompt: 10–23s at the
+ * default thinking level vs 3.7s at "low". The 2.x models take a token
+ * budget instead of a level (and would reject the unknown field), hence the
+ * split. The SDK's GenerationConfig type predates thinkingConfig, so it's
+ * passed through as-is.
+ */
+function thinkingFor(model: string): Record<string, unknown> {
+  return model.startsWith("gemini-2")
+    ? { thinkingConfig: { thinkingBudget: 0 } }
+    : { thinkingConfig: { thinkingLevel: "low" } };
+}
+
 async function generateJson<T>(prompt: string): Promise<T> {
   const text = await withKeyRotationAndRetry(async (apiKey, modelName) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: modelName,
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: { responseMimeType: "application/json", ...thinkingFor(modelName) } as GenerationConfig,
     });
     const result = await model.generateContent(prompt);
     return result.response.text();

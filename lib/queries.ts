@@ -1,5 +1,6 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm";
-import { db, layers, projects } from "./db";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { db, events, layers, projects } from "./db";
+import { isCaptionStyle, normalizeLayout, type CaptionStyle, type Layout } from "./composition";
 import type { ProjectSummaryDTO } from "./dto";
 
 function summaryQuery() {
@@ -38,4 +39,58 @@ export async function listRecentRendered(limit = 12): Promise<ProjectSummaryDTO[
     .orderBy(desc(projects.renderedAt))
     .limit(limit);
   return rows.map(toSummary);
+}
+
+export interface Showcase {
+  domain: string;
+  caption: string;
+  captionStyle: CaptionStyle;
+  layout: Layout;
+  backgroundThumb: string | null;
+  gifUrl: string | null;
+}
+
+/**
+ * The latest finished video, broken into its real layers — the home page
+ * draws it as an exploded view, so the hero shows an actual cut from the
+ * database rather than an illustration of one.
+ */
+export async function loadShowcase(): Promise<Showcase | null> {
+  const [p] = await db()
+    .select()
+    .from(projects)
+    .where(and(eq(projects.status, "rendered"), isNotNull(projects.videoUrl)))
+    .orderBy(desc(projects.renderedAt))
+    .limit(1);
+  if (!p) return null;
+  const ls = await db().select().from(layers).where(eq(layers.projectId, p.id));
+  const byKind = Object.fromEntries(ls.map((l) => [l.kind, l]));
+  return {
+    domain: p.domain,
+    caption: p.caption ?? "",
+    captionStyle: isCaptionStyle(p.captionStyle) ? p.captionStyle : "box",
+    layout: normalizeLayout(p.layout),
+    backgroundThumb: byKind.background?.thumbUrl ?? null,
+    gifUrl: byKind.gif?.previewUrl ?? null,
+  };
+}
+
+export type StageTiming = { stage: string; medianMs: number; runs: number };
+
+/**
+ * Median real duration of each pipeline stage across every run, straight
+ * from the activity log — the numbers on the home page are measured, not
+ * marketing copy.
+ */
+export async function loadStageTimings(): Promise<Record<string, StageTiming>> {
+  const rows = await db()
+    .select({
+      stage: events.stage,
+      medianMs: sql<number>`percentile_cont(0.5) within group (order by ${events.durationMs})::int`,
+      runs: sql<number>`count(*)::int`,
+    })
+    .from(events)
+    .where(and(isNotNull(events.durationMs), eq(events.level, "info"), inArray(events.stage, ["scrape", "plan", "source", "download", "render", "upload"])))
+    .groupBy(events.stage);
+  return Object.fromEntries(rows.map((r) => [r.stage, r]));
 }

@@ -248,6 +248,34 @@ export function Studio({ initial }: { initial: ProjectDTO }) {
         >
           <kbd className="font-mono">?</kbd> Shortcuts
         </button>
+        {/* The primary action, always on the first screen on laptops; phones use the sticky bottom bar. */}
+        {project.isOwner && prepared && (
+          <button
+            onClick={() => run("render")}
+            disabled={!canRender}
+            title="Render (R)"
+            className={`hidden h-9 items-center gap-2 rounded-full px-4 text-[14px] font-medium transition active:scale-[0.98] disabled:opacity-60 lg:inline-flex ${
+              project.videoUrl && !project.stale && !rendering
+                ? "border border-line hover:border-ink"
+                : "bg-rec text-white hover:brightness-105"
+            }`}
+          >
+            {rendering ? (
+              <>
+                <Spinner /> Rendering
+              </>
+            ) : (
+              <>
+                {project.videoUrl && !project.stale ? (
+                  <RetryIcon className="h-4 w-4" />
+                ) : (
+                  <span className="h-2 w-2 rounded-full bg-white" />
+                )}
+                {project.videoUrl ? (project.stale ? "Render again" : "Re-render") : "Render video"}
+              </>
+            )}
+          </button>
+        )}
       </div>
       <ShortcutsDialog open={showKeys} onClose={() => setShowKeys(false)} />
 
